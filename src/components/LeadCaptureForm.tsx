@@ -133,22 +133,67 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
     return () => clearTimeout(debounceTimer);
   }, [watchName, watchWhatsapp, watchEmail]);
 
+  // Função para testar a conexão com o Supabase
+  const testSupabaseConnection = async () => {
+    try {
+      setLoading(true);
+      
+      // Testa uma consulta simples à tabela leads
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .limit(1);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Conexão com o banco de dados bem-sucedida!",
+        description: `Encontrados ${data?.length || 0} registros.`,
+        variant: "default",
+        className: "bg-green-500 text-white"
+      });
+      
+    } catch (error: any) {
+      console.error('Erro ao testar conexão:', error);
+      toast({
+        title: "Erro na conexão com o banco de dados",
+        description: error?.message || 'Não foi possível conectar ao banco de dados',
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     try {
       setLoading(true);
       
+      // Validação adicional
+      if (!data.email || !data.whatsapp) {
+        throw new Error('E-mail e WhatsApp são obrigatórios');
+      }
+      
+      // Formata o WhatsApp para remover caracteres não numéricos
+      const formattedWhatsapp = data.whatsapp.replace(/\D/g, '');
+      
       // Final save to make sure we have all data
-      const { error } = await supabase
+      const { data: result, error } = await supabase
         .from('leads')
         .upsert([{ 
-          first_name: data.first_name,
-          whatsapp: data.whatsapp,
+          first_name: data.first_name || 'Não informado',
+          whatsapp: formattedWhatsapp,
           email: data.email,
-        }], { onConflict: 'email' });
+          created_at: new Date().toISOString()
+        }], { 
+          onConflict: 'email',
+          ignoreDuplicates: false
+        })
+        .select();
       
       if (error) throw error;
       
-      console.log('Lead captured successfully:', data);
+      console.log('Lead salvo com sucesso:', result);
       
       // Track form submission in the data layer
       if (typeof window !== 'undefined') {
@@ -165,21 +210,35 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
       }
       
       toast({
-        title: "Dados salvos com sucesso!",
+        title: "✅ Dados salvos com sucesso!",
         description: "Redirecionando para a oferta...",
         variant: "default",
-        className: "bg-gradient-to-r from-brutal-red to-brutal-orange text-white"
+        className: "bg-gradient-to-r from-green-500 to-green-700 text-white"
       });
       
       // Call the onComplete callback to redirect
       setTimeout(() => {
         onComplete();
       }, 1000);
-    } catch (error) {
-      console.error('Error submitting form:', error);
+    } catch (error: any) {
+      console.error('Erro ao salvar lead:', error);
+      
+      let errorMessage = 'Erro ao salvar os dados. Por favor, tente novamente.';
+      
+      // Mensagens de erro mais específicas
+      if (error.message.includes('permission denied')) {
+        errorMessage = 'Erro de permissão. Verifique as políticas de segurança do banco de dados.';
+      } else if (error.message.includes('connection')) {
+        errorMessage = 'Erro de conexão com o servidor. Verifique sua conexão com a internet.';
+      } else if (error.message.includes('duplicate key')) {
+        errorMessage = 'Este e-mail já está cadastrado.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Erro ao salvar dados",
-        description: "Por favor, tente novamente.",
+        title: "❌ Erro ao salvar",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -189,6 +248,20 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={`space-y-6 ${className}`}>
+      <div className="mb-6 p-4 bg-gray-100 rounded-lg">
+        <h3 className="font-bold text-lg mb-2">Teste de Conexão</h3>
+        <p className="text-sm text-gray-600 mb-3">Verifique se o banco de dados está respondendo</p>
+        <Button 
+          type="button" 
+          onClick={testSupabaseConnection}
+          disabled={loading}
+          variant="outline"
+          className="w-full"
+        >
+          {loading ? 'Testando...' : 'Testar Conexão com o Banco'}
+        </Button>
+      </div>
+      
       <div>
         <Label htmlFor="first_name" className="font-bold text-brutal-red text-lg">
           Seu Nome
