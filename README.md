@@ -1,73 +1,96 @@
-# Welcome to your Lovable project
+# Projeto Landing Page - RG Pulse & Brutal Gazette
 
-## Project info
+Bem-vindo ao projeto de landing pages da RG Pulse! Este repositório contém o código-fonte para as landing pages desenvolvidas, incluindo "AIPersonV2" e a temática "The Brutal Gazette".
 
-**URL**: https://lovable.dev/projects/553d0717-40db-468d-8188-6be342974a46
+## Visão Geral do Projeto
 
-## How can I edit this code?
+Este projeto tem como objetivo criar landing pages de alta conversão, com foco em uma experiência de usuário imersiva e design impactante. Utilizamos tecnologias modernas de front-end para garantir performance e manutenibilidade.
 
-There are several ways of editing your application.
+## Como Editar e Desenvolver Localmente
 
-**Use Lovable**
+Para trabalhar no projeto localmente utilizando seu ambiente de desenvolvimento preferido (IDE), siga os passos abaixo.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/553d0717-40db-468d-8188-6be342974a46) and start prompting.
+**Pré-requisitos:**
+*   Node.js (versão 18.x ou superior recomendada)
+*   npm (geralmente vem com Node.js) ou Yarn
 
-Changes made via Lovable will be committed automatically to this repo.
+**Passos para Configuração:**
 
-**Use your preferred IDE**
+1.  **Clone o Repositório:**
+    ```sh
+    git clone <URL_DO_SEU_REPOSITORIO_GIT_AQUI>
+    ```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2.  **Navegue até o Diretório do Projeto:**
+    ```sh
+    cd <NOME_DA_PASTA_DO_SEU_PROJETO>
+    ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+3.  **Instale as Dependências:**
+    Utilize o gerenciador de pacotes de sua preferência.
+    ```sh
+    npm install
+    # ou
+    yarn install
+    ```
 
-Follow these steps:
+4.  **Inicie o Servidor de Desenvolvimento:**
+    Este comando iniciará o servidor Vite com hot-reloading (atualização automática no navegador) e uma prévia instantânea da aplicação.
+    ```sh
+    npm run dev
+    # ou
+    yarn dev
+    ```
+    Acesse o endereço fornecido no terminal (geralmente `http://localhost:5173` ou similar) no seu navegador.
 
+**Estrutura de Arquivos Sugerida (Exemplo):**
+*   `src/pages/`: Contém os componentes de página principais (ex: `Index.tsx`, `AIPersonV2.tsx`).
+*   `src/components/`: Contém componentes reutilizáveis.
+    *   `src/components/ui/`: Para componentes de UI básicos (ex: `Button.tsx`, `Input.tsx` - possivelmente de ShadCN).
+    *   `src/components/Layouts/`: Para componentes de layout (ex: `NewspaperLayout.tsx`, `SimpleLayout.tsx`).
+    *   `src/components/Shared/`: Para componentes menores compartilhados.
+*   `src/styles/`: Arquivos CSS globais (ex: `tailwind.css`).
+*   `src/lib/`: Funções utilitárias, configurações (ex: `fonts.ts`, `utils.ts`).
+*   `src/integrations/`: Módulos para integração com serviços externos (ex: `supabase/client.ts`).
+*   `public/`: Arquivos estáticos.
+
+## Tecnologias Utilizadas
+
+Este projeto é construído com um stack moderno de front-end:
+
+*   **Vite:** Build tool e servidor de desenvolvimento rápido.
+*   **TypeScript:** Superset do JavaScript que adiciona tipagem estática.
+*   **React:** Biblioteca para construção de interfaces de usuário.
+*   **React Router DOM:** Para roteamento no lado do cliente.
+*   **Tailwind CSS:** Framework CSS utility-first para estilização rápida.
+*   **Shadcn/ui:** Coleção de componentes de UI reutilizáveis, construídos sobre Tailwind CSS e Radix UI (se aplicável ao seu uso de `Button`, `Input`, etc.).
+*   **Lucide React:** Biblioteca de ícones SVG.
+*   **Supabase (Cliente):** Para interações com backend Supabase (se aplicável, baseado no `LeadCaptureForm`).
+*   **React Hook Form:** Para gerenciamento de formulários.
+*   **@tanstack/react-query:** Para data fetching, caching e state management assíncrono.
+*   **`canvas-confetti`**: Para efeitos visuais (como no `LeadCaptureForm`).
+
+## Boas Práticas de Desenvolvimento
+
+*   **Commits Atômicos:** Faça commits pequenos e focados, com mensagens claras.
+*   **Branches:** Utilize branches para novas features ou correções (`feature/nome-da-feature`, `fix/descricao-do-bug`).
+*   **Pull Requests:** Para mesclar código na branch principal (ex: `main` ou `develop`), utilize Pull Requests para revisão.
+*   **Linting e Formatação:** Configure e utilize ferramentas como ESLint e Prettier para manter a consistência do código.
+*   **Variáveis de Ambiente:** Para chaves de API e outras informações sensíveis, utilize variáveis de ambiente (`.env` arquivos). **Nunca commite chaves secretas diretamente no código.**
+
+## Deploy (Hospedagem)
+
+O deploy desta aplicação Vite/React pode ser feito em diversas plataformas modernas de hospedagem que suportam aplicações Node.js ou build estático. Algumas opções populares incluem:
+
+*   **Vercel:** Excelente integração com frameworks front-end como Next.js e Vite. Oferece deploys automáticos a partir de commits no Git.
+*   **Netlify:** Similar ao Vercel, com ótimo suporte para builds estáticos e functions serverless.
+*   **GitHub Pages:** Para sites estáticos, se seu build for puramente front-end.
+*   **AWS Amplify, Google Firebase Hosting, Azure Static Web Apps:** Opções de cloud providers.
+*   **Servidor Próprio / VPS:** Requer mais configuração manual (ex: Nginx, Docker).
+
+**Processo de Build para Produção:**
+Geralmente, o comando para gerar os arquivos otimizados para produção é:
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/553d0717-40db-468d-8188-6be342974a46) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+npm run build
+# ou
+yarn build
