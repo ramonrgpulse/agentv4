@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -6,6 +5,32 @@ import { Label } from "./ui/label";
 import { useToast } from "./ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
+import type { DataLayerEvent } from '@/types/globals';
+
+// Tipos para a tabela de leads
+type Lead = {
+  id?: string;
+  first_name: string;
+  whatsapp: string;
+  email: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+// Extensão dos tipos do Supabase
+declare module '@supabase/supabase-js' {
+  interface Database {
+    public: {
+      Tables: {
+        leads: {
+          Row: Lead;
+          Insert: Omit<Lead, 'id' | 'created_at'>;
+          Update: Partial<Lead>;
+        };
+      };
+    };
+  }
+}
 
 interface LeadFormProps {
   onComplete: () => void;
@@ -22,24 +47,7 @@ interface LeadData {
   first_name?: string;
   whatsapp?: string;
   email?: string;
-}
-
-interface DataLayerEvent {
-  event: string;
-  lead_info?: {
-    has_name?: boolean;
-    has_whatsapp?: boolean;
-    has_email?: boolean;
-    name?: string;
-  };
-  field_name?: string;
-  field_values_complete?: boolean;
-}
-
-declare global {
-  interface Window {
-    dataLayer: DataLayerEvent[];
-  }
+  created_at?: string;
 }
 
 const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
@@ -88,76 +96,105 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
   
   // Save field to Supabase as user types
   useEffect(() => {
-    // Only save data when a field has a value
-    if (!watchName && !watchWhatsapp && !watchEmail) return;
+    // Only save when form is not complete and we have at least email and whatsapp
+    if ((!watchEmail || !watchWhatsapp) || (watchName && watchEmail && watchWhatsapp)) return;
     
-    const saveField = async () => {
+    const saveField = async (): Promise<void> => {
       try {
-        const data: LeadData = {};
+        // Basic validation
+        if (!watchEmail || !watchWhatsapp) return;
         
-        // Only include fields with values
-        if (watchName) data.first_name = watchName;
-        if (watchWhatsapp) data.whatsapp = watchWhatsapp;
-        if (watchEmail) data.email = watchEmail;
+        const leadData = {
+          first_name: watchName || 'Não informado',
+          whatsapp: watchWhatsapp.replace(/\D/g, ''),
+          email: watchEmail,
+          created_at: new Date().toISOString()
+        };
         
-        // Only try to save if we have at least one field with value
-        if (Object.keys(data).length > 0) {
-          const { error } = await supabase
-            .from('leads')
-            .upsert([data], { onConflict: 'email' });
-          
-          if (error) throw error;
-          
-          console.log('Field saved successfully:', data);
-          
-          // Track field completion in data layer
-          if (typeof window !== 'undefined') {
-            window.dataLayer = window.dataLayer || [];
-            const fieldEvent: DataLayerEvent = {
-              event: 'field_complete',
-              field_name: Object.keys(data).join('_'),
-              field_values_complete: Object.values(data).some(Boolean)
-            };
-            window.dataLayer.push(fieldEvent);
-          }
-        }
-      } catch (error) {
-        console.error('Error saving field:', error);
+        console.log('Tentando salvar lead:', leadData);
+        
+        const { data, error } = await supabase
+          .from('leads')
+          .upsert(leadData, { 
+            onConflict: 'email',
+            ignoreDuplicates: false
+          })
+          .select();
+        
+        if (error) throw error;
+        
+        console.log('Lead salvo com sucesso:', data);
+        
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        console.error('Erro ao salvar campo:', errorMessage);
       }
     };
     
     const debounceTimer = setTimeout(() => {
-      saveField();
-    }, 800); // Increased debounce time for better UX
+      saveField().catch(console.error);
+    }, 1000);
     
     return () => clearTimeout(debounceTimer);
   }, [watchName, watchWhatsapp, watchEmail]);
 
   // Função para testar a conexão com o Supabase
-  const testSupabaseConnection = async () => {
+  const testSupabaseConnection = async (): Promise<void> => {
     try {
       setLoading(true);
       
-      // Testa uma consulta simples à tabela leads
+      // Testa uma inserção simples
+      const testData = {
+        first_name: 'Teste',
+        whatsapp: '5511999999999',
+        email: `teste_${Date.now()}@teste.com`,
+        created_at: new Date().toISOString()
+      };
+      
+      console.log('Testando inserção com dados:', testData);
+      
       const { data, error } = await supabase
         .from('leads')
-        .select('*')
-        .limit(1);
+        .insert(testData)
+        .select();
       
       if (error) throw error;
       
+      console.log('Dados de teste inseridos:', data);
+      
+      // Tenta remover os dados de teste
+      if (data && data[0]?.id) {
+        await supabase
+          .from('leads')
+          .delete()
+          .eq('id', data[0].id);
+      }
+      
       toast({
-        title: "Conexão com o banco de dados bem-sucedida!",
-        description: `Encontrados ${data?.length || 0} registros.`,
+        title: "✅ Conexão com o banco de dados bem-sucedida!",
+        description: "O banco de dados está respondendo corretamente.",
         variant: "default",
         className: "bg-green-500 text-white"
       });
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao testar conexão:', error);
+      
+      let errorMessage = 'Erro desconhecido ao conectar ao banco de dados';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('permission denied')) {
+          errorMessage = 'Erro de permissão. Verifique as políticas de segurança (RLS) no Supabase.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Erro de rede. Verifique sua conexão com a internet.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Erro na conexão com o banco de dados",
-        description: error?.message || 'Não foi possível conectar ao banco de dados',
+        title: "❌ Erro na conexão",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -165,27 +202,32 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
     }
   };
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (formData: FormData) => {
     try {
       setLoading(true);
       
       // Validação adicional
-      if (!data.email || !data.whatsapp) {
+      if (!formData.email || !formData.whatsapp) {
         throw new Error('E-mail e WhatsApp são obrigatórios');
       }
       
       // Formata o WhatsApp para remover caracteres não numéricos
-      const formattedWhatsapp = data.whatsapp.replace(/\D/g, '');
+      const formattedWhatsapp = formData.whatsapp.replace(/\D/g, '');
       
-      // Final save to make sure we have all data
-      const { data: result, error } = await supabase
+      // Dados do lead para salvar
+      const leadData: LeadRecord = {
+        first_name: formData.first_name || 'Não informado',
+        whatsapp: formattedWhatsapp,
+        email: formData.email,
+        created_at: new Date().toISOString()
+      };
+      
+      console.log('Enviando dados do formulário:', leadData);
+      
+      // Salva no Supabase
+      const { data, error } = await supabase
         .from('leads')
-        .upsert([{ 
-          first_name: data.first_name || 'Não informado',
-          whatsapp: formattedWhatsapp,
-          email: data.email,
-          created_at: new Date().toISOString()
-        }], { 
+        .upsert([leadData], { 
           onConflict: 'email',
           ignoreDuplicates: false
         })
@@ -193,22 +235,26 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
       
       if (error) throw error;
       
-      console.log('Lead salvo com sucesso:', result);
+      console.log('Lead salvo com sucesso:', data);
       
       // Track form submission in the data layer
       if (typeof window !== 'undefined') {
         window.dataLayer = window.dataLayer || [];
         const leadInfo = {
-          name: data.first_name,
-          has_whatsapp: Boolean(data.whatsapp),
-          has_email: Boolean(data.email)
+          name: formData.first_name,
+          has_whatsapp: Boolean(formData.whatsapp),
+          has_email: Boolean(formData.email)
         };
-        window.dataLayer.push({
+        
+        const event: DataLayerEvent = {
           event: 'lead_captured',
           lead_info: leadInfo
-        });
+        };
+        
+        window.dataLayer.push(event);
       }
       
+      // Mostra mensagem de sucesso
       toast({
         title: "✅ Dados salvos com sucesso!",
         description: "Redirecionando para a oferta...",
@@ -216,24 +262,26 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
         className: "bg-gradient-to-r from-green-500 to-green-700 text-white"
       });
       
-      // Call the onComplete callback to redirect
+      // Chama a função de conclusão após um pequeno delay
       setTimeout(() => {
         onComplete();
       }, 1000);
-    } catch (error: any) {
+      
+    } catch (error: unknown) {
       console.error('Erro ao salvar lead:', error);
       
       let errorMessage = 'Erro ao salvar os dados. Por favor, tente novamente.';
       
-      // Mensagens de erro mais específicas
-      if (error.message.includes('permission denied')) {
-        errorMessage = 'Erro de permissão. Verifique as políticas de segurança do banco de dados.';
-      } else if (error.message.includes('connection')) {
-        errorMessage = 'Erro de conexão com o servidor. Verifique sua conexão com a internet.';
-      } else if (error.message.includes('duplicate key')) {
-        errorMessage = 'Este e-mail já está cadastrado.';
-      } else if (error.message) {
-        errorMessage = error.message;
+      if (error instanceof Error) {
+        if (error.message.includes('permission denied')) {
+          errorMessage = 'Erro de permissão. Verifique as políticas de segurança (RLS) no Supabase.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Erro de rede. Verifique sua conexão com a internet.';
+        } else if (error.message.includes('duplicate key')) {
+          errorMessage = 'Este e-mail já está cadastrado.';
+        } else {
+          errorMessage = error.message;
+        }
       }
       
       toast({
