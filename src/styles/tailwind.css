@@ -1,0 +1,215 @@
+/* Importações das fontes do @fontsource */
+@import '@fontsource/inter';
+@import '@fontsource/oswald';
+@import '@fontsource/fira-code';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos base */
+@layer base {
+  :root {
+    /* Aplicando as variáveis de fonte */
+    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+    --font-heading: "Oswald", "Inter", system-ui, -apple-system, sans-serif;
+    --font-mono: "Fira Code", "Fira Mono", monospace;
+  }
+
+  /* Estilos para elementos HTML */
+  html {
+    @apply scroll-smooth antialiased;
+    font-family: var(--font-sans);
+  }
+
+  body {
+    @apply bg-brutal-oldpaper text-brutal-dark min-h-screen;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Estilos para cabeçalhos */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-bold leading-tight tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl;
+  }
+
+  /* Links */
+  a {
+    @apply text-brutal-red hover:text-brutal-orange transition-colors duration-200;
+  }
+
+  /* Botões */
+  button, .btn {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Formulários */
+  input, textarea, select {
+    @apply w-full px-4 py-2 rounded-lg border border-brutal-dark/20 bg-white/90 focus:outline-none focus:ring-2 focus:ring-brutal-red/50 focus:border-transparent transition-all duration-200;
+  }
+
+  /* Tabelas */
+  table {
+    @apply w-full border-collapse;
+  }
+
+  th, td {
+    @apply p-3 text-left border-b border-brutal-dark/10;
+  }
+
+  th {
+    @apply font-semibold bg-brutal-dark/5;
+  }
+}
+
+/* Componentes personalizados */
+@layer components {
+  /* Container */
+  .container {
+    @apply px-4 mx-auto w-full max-w-7xl;
+  }
+
+  /* Botões */
+  .btn-primary {
+    @apply bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-brutal-red/50 focus:ring-offset-2 transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-brutal-dark hover:bg-brutal-darker text-white font-bold py-2.5 px-5 rounded-lg border-2 border-brutal-yellow hover:border-brutal-orange focus:outline-none focus:ring-2 focus:ring-brutal-yellow/50 focus:ring-offset-2 transition-all duration-200;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white/80 backdrop-blur-sm rounded-xl border border-brutal-dark/10 shadow-md hover:shadow-lg transition-shadow duration-300;
+  }
+
+  /* Seções */
+  .section {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-5xl font-bold mb-6 text-center;
+    font-family: var(--font-heading);
+  }
+
+  .section-subtitle {
+    @apply text-xl md:text-2xl text-brutal-dark/80 text-center mb-12 max-w-3xl mx-auto;
+  }
+
+  /* Efeitos */
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  /* Utilitários */
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .text-shadow-sm {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.6s ease-out forwards;
+}
+
+/* Efeito de vidro */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Botão de voltar ao topo */
+.back-to-top {
+  @apply fixed bottom-8 right-8 bg-brutal-red text-white p-3 rounded-full shadow-lg hover:bg-brutal-orange transform hover:scale-110 transition-all duration-300 z-50;
+}
+
+/* Efeito de gradiente no texto */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brutal-red via-brutal-orange to-brutal-yellow;
+}
+
+/* Efeito de brilho */
+.glow {
+  text-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+}
+
+/* Seção hero */
+.hero-section {
+  @apply relative overflow-hidden min-h-screen flex items-center justify-center;
+  background: linear-gradient(135deg, hsl(var(--brutal-oldpaper)) 0%, hsl(var(--brutal-paper)) 100%);
+}
+
+/* Efeito de máquina de escrever */
+.typewriter {
+  border-right: 3px solid;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: hsl(var(--brutal-red)) }
+}
+
+/* Estilos para modo escuro */
+@media (prefers-color-scheme: dark) {
+  body {
+    @apply bg-brutal-darker text-white/90;
+  }
+  
+  .card {
+    @apply bg-brutal-dark/50 border-brutal-dark/30;
+  }
+  
+  input, textarea, select {
+    @apply bg-brutal-dark/30 border-brutal-dark/50 text-white placeholder-white/60;
+  }
+}

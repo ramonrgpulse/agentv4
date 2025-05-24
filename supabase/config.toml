@@ -1,0 +1,49 @@
+# Configurações do projeto Supabase
+project_id = "vtvbwyfbukntmzjzfvcw"
+
+# Configurações da API
+[api]
+  # Porta da API local
+  port = 54321
+  # Habilitar o Studio
+  enabled = true
+
+# Configurações do banco de dados
+[db]
+  # Porta do banco de dados local
+  port = 54322
+  # Nome do banco de dados
+  database = "postgres"
+  # Usuário padrão
+  user = "postgres"
+
+# Configurações de autenticação
+[auth]
+  # URL do site (para redirecionamentos)
+  site_url = "http://localhost:3000"
+  # URIs de redirecionamento permitidos
+  additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+
+# Configurações do Storage
+[storage]
+  # Tamanho máximo do arquivo (em bytes)
+  file_size_limit = 52428800  # 50MB
+  # Tipos de arquivo permitidos
+  allowed_mime_types = ["image/*", "application/pdf"]
+
+# Configurações de email
+[mailer]
+  # Configurações SMTP para envio de emails
+  smtp_host = "smtp.example.com"
+  smtp_port = 587
+  smtp_user = "user@example.com"
+  smtp_pass = ""
+  smtp_admin_email = "admin@example.com"
+
+# Configurações de logging
+[log_level]
+  # Nível de log para diferentes componentes
+  auth = "info"
+  api = "info"
+  db = "info"
+  storage = "info"

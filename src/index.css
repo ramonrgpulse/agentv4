@@ -1,0 +1,210 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+    
+    /* Cores primárias */
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-dark: 0 84% 50%;
+    --primary-light: 0 84% 70%;
+    
+    /* Cores secundárias */
+    --secondary: 25 95% 53%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-dark: 25 95% 43%;
+    --secondary-light: 25 95% 63%;
+    
+    /* Cores de destaque */
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 100%;
+    --accent-dark: 45 93% 37%;
+    --accent-light: 45 93% 57%;
+    
+    /* Cores neutras */
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 10% 50%;
+    --border: 240 10% 85%;
+    --input: 240 10% 90%;
+    --ring: 0 84% 60%;
+    
+    /* Cores de feedback */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Cores brutais personalizadas */
+    --brutal-red: 0 84% 60%;
+    --brutal-orange: 25 95% 53%;
+    --brutal-yellow: 45 93% 47%;
+    --brutal-dark: 240 10% 14%;
+    --brutal-darker: 240 10% 10%;
+    --brutal-paper: 54 23% 93%;
+    --brutal-oldpaper: 48 38% 92%;
+    
+    /* Bordas e sombras */
+    --radius: 0.5rem;
+    --border: 240 10% 85%;
+    --input: 240 10% 90%;
+    --ring: 0 84% 60%;
+    
+    /* Tipografia */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-heading: 'Oswald', 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Fira Code', 'Fira Mono', monospace;
+  }
+  
+  /* Modo escuro */
+  .dark {
+    --background: 240 10% 10%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 14%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 14%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 95% 53%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 10% 20%;
+    --muted-foreground: 240 10% 70%;
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 10% 20%;
+    --input: 240 10% 25%;
+    --ring: 0 84% 60%;
+    --brutal-paper: 240 10% 14%;
+    --brutal-oldpaper: 240 10% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Oswald', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+}
+
+@layer components {
+  .brutal-text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  }
+
+  .brutal-box-shadow {
+    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.3);
+  }
+
+  .brutal-border-glow {
+    box-shadow: 0 0 20px rgba(234, 88, 12, 0.5);
+  }
+
+  .animate-intense-pulse {
+    animation: intense-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-pulse-brutal {
+    animation: pulse-brutal 2s ease-in-out infinite;
+  }
+
+  @keyframes intense-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes pulse-brutal {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+}
+
+@layer utilities {
+  .text-stroke {
+    -webkit-text-stroke: 2px #DC2626;
+  }
+
+  .hover-brutal:hover {
+    transform: scale(1.05) rotate(-1deg);
+    transition: all 0.3s ease;
+  }
+
+  /* Additional utility classes for better text contrast */
+  .text-contrast-improved {
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .bg-overlay-dark {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* New utility classes for better text readability */
+  .text-shadow-sm {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  
+  .bg-translucent {
+    background-color: rgba(255, 255, 255, 0.85);
+  }
+}
