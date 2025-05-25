@@ -9,7 +9,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import type { DataLayerEvent } from '@/types/globals';
 
 // URLs
-const WEBHOOK_URL = 'https://programa8.rgpulse.com.br/webhook-test/persons';
+const WEBHOOK_URL = 'https://programa8webhook.rgpulse.com.br/webhook/persons';
 const CHECKOUT_URL = 'https://pay.herospark.com/rg-pulse-agente-criador-de-avatar-aprofundado-412999';
 
 // Interface para os dados do lead que serão enviados ao webhook
