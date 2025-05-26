@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { 
@@ -23,13 +23,76 @@ import {
   DollarSign,
   TrendingUp,
   Eye,
-  Target
+  Target,
+  ArrowDown,
+  MousePointer,
+  Flame,
+  Timer
 } from "lucide-react";
 import LeadCaptureForm from "@/components/LeadCaptureForm"; 
 import { SimpleLayout, Section } from "@/components/SimpleLayout";
 
 const AIPersonV2 = () => {
   const [formSection, setFormSection] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [viewersCount, setViewersCount] = useState(347);
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 23,
+    minutes: 59,
+    seconds: 59
+  });
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
+
+  // Timer countdown effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev.seconds > 0) {
+          return { ...prev, seconds: prev.seconds - 1 };
+        } else if (prev.minutes > 0) {
+          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        } else if (prev.hours > 0) {
+          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        }
+        return prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Viewers count simulation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setViewersCount(prev => {
+        const change = Math.floor(Math.random() * 10) - 5;
+        return Math.max(300, Math.min(500, prev + change));
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Reading progress and scroll effects
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      setScrollY(currentScrollY);
+      
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = (currentScrollY / totalHeight) * 100;
+      setReadingProgress(progress);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Visibility effect
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   const scrollToForm = (section: string) => {
     setFormSection(section);
@@ -49,40 +112,110 @@ const AIPersonV2 = () => {
       subtitle="A Verdade Nua, Crua e DOLOROSA Sobre o Marketing Que NINGUÉM Tem Coragem de Te Dizer"
       pageTheme="dark"
     >
+      {/* Reading Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-gray-200 z-50">
+        <div 
+          className="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-300"
+          style={{ width: `${readingProgress}%` }}
+        />
+      </div>
+
+      {/* Live Viewers Counter */}
+      <div className={`fixed top-4 left-4 z-40 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-500 ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}>
+        <div className="flex items-center space-x-2 text-sm font-bold">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          <Eye className="w-4 h-4" />
+          <span className="animate-pulse">{viewersCount} pessoas assistindo</span>
+        </div>
+      </div>
+
+      {/* Urgency Timer */}
+      <div className={`fixed top-4 right-4 z-40 bg-red-600 text-white p-3 rounded-lg shadow-lg transform transition-all duration-500 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+        <div className="flex items-center space-x-2 text-sm font-bold">
+          <Timer className="w-4 h-4 animate-pulse" />
+          <span>OFERTA EXPIRA EM:</span>
+        </div>
+        <div className="flex space-x-1 text-lg font-mono mt-1">
+          <span className="bg-white text-red-600 px-2 py-1 rounded">{String(timeLeft.hours).padStart(2, '0')}</span>
+          <span>:</span>
+          <span className="bg-white text-red-600 px-2 py-1 rounded">{String(timeLeft.minutes).padStart(2, '0')}</span>
+          <span>:</span>
+          <span className="bg-white text-red-600 px-2 py-1 rounded">{String(timeLeft.seconds).padStart(2, '0')}</span>
+        </div>
+      </div>
       {/* Hero Section */}
       <Section 
         variant="transparent" 
-        className="pt-16 pb-20 md:pt-24 md:pb-32 text-center !my-0"
+        className="pt-16 pb-20 md:pt-24 md:pb-32 text-center !my-0 relative overflow-hidden"
       >
-        <div className="container px-4 mx-auto text-center">
+        {/* Enhanced Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-brutal-red rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+          <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-brutal-orange rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse" style={{animationDelay: '2s'}}></div>
+          <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-brutal-yellow rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse" style={{animationDelay: '4s'}}></div>
+          {/* Additional floating elements */}
+          <div className="absolute top-10 right-10 w-4 h-4 bg-brutal-paper rounded-full animate-ping"></div>
+          <div className="absolute bottom-20 left-10 w-3 h-3 bg-brutal-red rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+          <div className="absolute top-1/2 right-20 w-2 h-2 bg-brutal-orange rounded-full animate-ping" style={{animationDelay: '3s'}}></div>
+        </div>
+
+        <div className="container px-4 mx-auto text-center relative z-10">
+          {/* Attention Grabber */}
+          <div className="mb-8 p-4 bg-gradient-to-r from-brutal-red/50 to-brutal-orange/50 border border-brutal-red/50 rounded-lg shadow-lg animate-bounce backdrop-blur-sm">
+            <div className="flex items-center justify-center space-x-2 text-brutal-red font-bold">
+              <Flame className="w-5 h-5 animate-pulse" />
+              <span className="text-sm uppercase tracking-wide">🔥 REVELAÇÃO EXPLOSIVA EM ANDAMENTO 🔥</span>
+              <Flame className="w-5 h-5 animate-pulse" />
+            </div>
+          </div>
+
           <div className="inline-flex items-center px-4 py-2 mb-6 text-sm font-medium text-brutal-red bg-brutal-red/10 rounded-full border border-brutal-red/30">
             <AlertTriangle className="w-4 h-4 mr-2" />
             ALERTA: Conteúdo sem filtros
           </div>
           
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-brutal-paper sm:text-5xl md:text-6xl lg:text-7xl font-oswald leading-tight">
+          <h1 className={`mt-4 text-4xl font-extrabold tracking-tight text-brutal-paper sm:text-5xl md:text-6xl lg:text-7xl font-oswald leading-tight transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             RG Pulse - Agente de Criação de Avatar
-            <span className="block mt-4 text-transparent bg-clip-text bg-gradient-to-r from-brutal-red via-brutal-orange to-brutal-yellow">
+            <span className="block mt-4 text-transparent bg-clip-text bg-gradient-to-r from-brutal-red via-brutal-orange to-brutal-yellow relative">
               Gritar Para as Paredes?
+              <div className="absolute -bottom-2 left-0 w-full h-1 bg-brutal-red animate-pulse"></div>
             </span>
           </h1>
           
-          <p className="max-w-4xl mx-auto mt-8 text-xl sm:text-2xl font-medium text-brutal-paper/90 font-sans leading-relaxed">
+          <p className={`max-w-4xl mx-auto mt-8 text-xl sm:text-2xl font-medium text-brutal-paper/90 font-sans leading-relaxed transform transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             Você está aí. De novo. Olhando para essa tela, esperando mais uma pílula mágica, mais uma promessa vazia de "resultados explosivos".
             <span className="block mt-4 text-brutal-yellow font-bold">
               Chega de marketing de mentira. Hora da verdade.
             </span>
           </p>
           
-          <div className="flex flex-col items-center w-full max-w-2xl gap-4 mt-12 sm:flex-row sm:justify-center mx-auto">
-            <Button 
-              size="lg" 
-              onClick={() => scrollToForm('hero_cta_parar_perder_dinheiro')}
-              className="font-oswald uppercase tracking-wider w-full sm:w-auto bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-brutal-darker font-bold py-4 px-6 text-base sm:py-5 sm:px-8 sm:text-lg shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-yellow active:translate-y-0.5 active:shadow-brutal-base rounded-sm h-auto whitespace-normal"
-            >
-              Quero Parar de Perder Dinheiro Agora
-              <Zap className="w-5 h-5 ml-2 animate-pulse" />
-            </Button>
+          {/* Enhanced Warning Box */}
+          <div className={`bg-gradient-to-r from-brutal-yellow/40 to-brutal-red/40 border-l-4 border-brutal-yellow p-6 mb-8 text-left max-w-2xl mx-auto backdrop-blur-sm rounded-r-lg shadow-lg transform transition-all duration-1000 delay-500 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <div className="flex items-start">
+              <AlertTriangle className="w-6 h-6 text-brutal-yellow mt-1 mr-3 animate-bounce" />
+              <div>
+                <p className="text-lg font-semibold text-brutal-yellow mb-2">
+                  ⚠️ ATENÇÃO: Esta página será removida em breve por pressão da indústria do marketing tradicional.
+                </p>
+                <p className="text-sm text-brutal-paper/60">
+                  Mais de 50.000 pessoas já acessaram este conteúdo. Não perca sua chance!
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className={`flex flex-col items-center w-full max-w-2xl gap-4 mt-12 sm:flex-row sm:justify-center mx-auto transform transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <div className="relative inline-block w-full sm:w-auto">
+              <div className="absolute -inset-1 bg-gradient-to-r from-brutal-red to-brutal-orange rounded-sm blur opacity-75 animate-pulse"></div>
+              <Button 
+                size="lg" 
+                onClick={() => scrollToForm('hero_cta_parar_perder_dinheiro')}
+                className="relative font-oswald uppercase tracking-wider w-full sm:w-auto bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-brutal-darker font-bold py-4 px-6 text-base sm:py-5 sm:px-8 sm:text-lg shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-yellow active:translate-y-0.5 active:shadow-brutal-base rounded-sm h-auto whitespace-normal group"
+              >
+                Quero Parar de Perder Dinheiro Agora
+                <Zap className="w-5 h-5 ml-2 group-hover:animate-spin" />
+              </Button>
+            </div>
             <Button 
               variant="outline" 
               size="lg" 
@@ -90,6 +223,7 @@ const AIPersonV2 = () => {
               className="font-oswald uppercase tracking-wider w-full sm:w-auto font-bold py-4 px-6 text-base sm:py-5 sm:px-8 sm:text-lg border-2 border-brutal-paper/50 hover:text-brutal-red hover:border-brutal-red text-brutal-paper shadow-brutal-base focus:ring-brutal-red active:translate-y-0.5 active:shadow-none rounded-sm bg-brutal-dark/70 backdrop-blur-sm h-auto whitespace-normal"
             >
               Me Mostre Como Isso Funciona
+              <ArrowDown className="w-5 h-5 ml-2 animate-bounce" />
             </Button>
           </div>
           
@@ -109,6 +243,10 @@ const AIPersonV2 = () => {
               <span>Garantia de 7 Dias</span>
             </div>
           </div>
+          
+          <p className="mt-4 text-sm text-brutal-red font-semibold animate-pulse">
+            ⚡ Últimas 2 horas: {Math.floor(Math.random() * 50) + 150} pessoas garantiram acesso
+          </p>
         </div>
       </Section>
 
