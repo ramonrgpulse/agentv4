@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { QuoteIcon } from 'lucide-react';
+import { Quote } from 'lucide-react';
 
 export const PullQuote = ({ children, attribution, className = '' }: { children: ReactNode; attribution?: string; className?: string }) => (
   <blockquote 
@@ -10,7 +10,7 @@ export const PullQuote = ({ children, attribution, className = '' }: { children:
     // Alternatively, for multi-column layouts, avoid float or use specific column-span properties if the browser supports it well enough for your needs.
     // For now, float is a classic approach. Consider not using columns in articles with pull quotes or very complex layouts.
   >
-    <QuoteIcon 
+    <Quote 
       className="absolute -top-3 -left-2.5 w-12 h-12 text-brutal-orange opacity-25 transform -translate-x-1/4 -translate-y-1/4"
       aria-hidden="true"
       strokeWidth={1}

@@ -9,8 +9,16 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import type { DataLayerEvent } from '@/types/globals';
 
 // URLs
-const WEBHOOK_URL = 'https://programa8webhook.rgpulse.com.br/webhook/persons';
+const WEBHOOK_URL = 'https://programa8webhook.rgpulse.com.br/webhook/persona';
 const CHECKOUT_URL = 'https://pay.herospark.com/rg-pulse-agente-criador-de-avatar-aprofundado-412999';
+
+// Função para logar parâmetros da URL
+const logUrlParams = () => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    console.log('Parâmetros da URL encontrados:', Object.fromEntries(params.entries()));
+  }
+};
 
 // Interface para os dados do lead que serão enviados ao webhook
 interface LeadData {
@@ -52,9 +60,16 @@ const getUrlParams = (): Record<string, string> => {
   const params = new URLSearchParams(window.location.search);
   const result: Record<string, string> = {};
   
-  // Adiciona todos os parâmetros da URL ao objeto de resultado
+  // Adiciona apenas os parâmetros UTM e de rastreamento relevantes
+  const allowedParams = [
+    'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+    'fbclid', 'gclid', 'gbraid', 'wbraid', 'ref', 'source'
+  ];
+  
   params.forEach((value, key) => {
-    result[key] = value;
+    if (allowedParams.includes(key) || key.startsWith('utm_')) {
+      result[key] = value;
+    }
   });
   
   return result;
@@ -74,16 +89,24 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
     if (document.documentElement.classList.contains('dark') || document.body.classList.contains('dark')) {
         return true;
     }
-    // Check ancestor elements for dark theme classes or specific dark background colors
-    let parent = firstNameInputRef.current?.closest('.bg-brutal-darker, .bg-brutal-dark, .dark-theme-section');
+    // Verifica elementos ancestrais por classes de tema escuro
+    const parent = firstNameInputRef.current?.closest('.bg-brutal-darker, .bg-brutal-dark, .dark-theme-section');
     if (parent) return true;
 
-    // More robust check based on computed styles (can be slow if overused)
-    // This is a fallback if classes aren't specific enough
-    // Consider passing a theme prop down instead of this intensive check
+    // Verificação baseada em estilos computados
     const formElement = firstNameInputRef.current?.closest('form');
     if (formElement) {
         const formBgColor = getComputedStyle(formElement).backgroundColor;
+        // Verifica se a cor de fundo é escura
+        if (formBgColor) {
+            const rgb = formBgColor.match(/\d+/g);
+            if (rgb && rgb.length >= 3) {
+                const [r, g, b] = rgb.map(Number);
+                // Fórmula para calcular o brilho (luminosidade)
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                return brightness < 128; // Se for menor que 128, é um fundo escuro
+            }
+        }
         if (formBgColor === 'rgb(23, 23, 23)' || formBgColor === 'rgb(15, 15, 15)') { // Matches your dark colors
             return true;
         }
@@ -138,14 +161,21 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
     defaultValues: { first_name: '', whatsapp: '', email: '' }
   });
   
-  const formatPhoneNumber = (value: string) => {
-    const onlyNums = value.replace(/\D/g, '');
-    if (onlyNums.length <= 2) return `(${onlyNums}`;
-    if (onlyNums.length <= 6) return `(${onlyNums.slice(0, 2)}) ${onlyNums.slice(2)}`;
-    if (onlyNums.length <= 10) return `(${onlyNums.slice(0, 2)}) ${onlyNums.slice(2, 6)}-${onlyNums.slice(6)}`;
-    return `(${onlyNums.slice(0, 2)}) ${onlyNums.slice(2, 7)}-${onlyNums.slice(7, 11)}`;
-  };
-  
+  const formatPhoneNumber = useCallback((value: string): string => {
+    if (!value) return '';
+    
+    // Remove tudo que não for dígito
+    const phoneNumber = value.replace(/\D/g, '');
+    
+    // Aplica a máscara (XX) XXXXX-XXXX
+    if (phoneNumber.length <= 2) return phoneNumber;
+    if (phoneNumber.length <= 6) return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+    if (phoneNumber.length <= 10) return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 6)}-${phoneNumber.slice(6)}`;
+    
+    // Limita a 11 dígitos (DDD + 9 dígitos)
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+  }, []);
+
   const whatsappValue = watch('whatsapp');
   const prevWhatsappValue = useRef('');
   
@@ -157,7 +187,7 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
       }
     }
     prevWhatsappValue.current = whatsappValue || '';
-  }, [whatsappValue, setValue]);
+  }, [whatsappValue, setValue, formatPhoneNumber]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -197,82 +227,201 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
     }
   }, []);
 
+  // Função para limpar dados circulares antes do envio
+  const cleanDataForSerialization = <T extends object>(data: T): Record<string, unknown> => {
+    // Se não for um objeto ou for nulo, retorna como está
+    if (data === null || typeof data !== 'object') {
+      return data as Record<string, unknown>;
+    }
+    
+    // Se for um array, retorna um novo array
+    if (Array.isArray(data)) {
+      return data.map(item => 
+        typeof item === 'object' && item !== null 
+          ? cleanDataForSerialization(item) 
+          : item
+      ) as unknown as Record<string, unknown>;
+    }
+    
+    // Cria um novo objeto para evitar modificar o original
+    const result: Record<string, unknown> = {};
+    
+    // Itera sobre as chaves do objeto
+    for (const key in data) {
+      // Ignora propriedades que podem causar referências circulares
+      if (key.startsWith('__react') || key === '_owner' || key === '_store') {
+        continue;
+      }
+      
+      const value = (data as Record<string, unknown>)[key];
+      
+      // Se for um elemento DOM, pega apenas as propriedades necessárias
+      if (value instanceof HTMLElement) {
+        result[key] = {
+          tagName: value.tagName,
+          id: value.id,
+          className: value.className,
+          textContent: value.textContent?.substring(0, 100) // Limita o tamanho
+        };
+      } 
+      // Se for um objeto e não for nulo, chama recursivamente
+      else if (typeof value === 'object' && value !== null) {
+        result[key] = cleanDataForSerialization(value);
+      } 
+      // Para outros tipos, mantém o valor
+      else {
+        result[key] = value;
+      }
+    }
+    
+    return result;
+  };
+
+  // Efeito para rolar suavemente até o topo do formulário quando houver erro
+  useEffect(() => {
+    if (submitError) {
+      // Rola suavemente para o topo do formulário
+      const formElement = document.getElementById('lead-capture-form');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [submitError]);
+
+  // Manipulador de mudança para o campo de WhatsApp
+  const handleWhatsAppChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatPhoneNumber(e.target.value);
+    e.target.value = formattedValue;
+    // Dispara o evento de mudança do react-hook-form
+    const { onChange } = register('whatsapp');
+    if (onChange) {
+      const event = { ...e, target: { ...e.target, value: formattedValue } };
+      onChange(event);
+    }
+  }, [formatPhoneNumber, register]);
+
+  // Função para verificar se o webhook está acessível
+  const checkWebhookConnectivity = async (): Promise<boolean> => {
+    try {
+      console.log('Verificando conectividade com o webhook...');
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'HEAD',
+        mode: 'no-cors',
+        cache: 'no-store'
+      });
+      // Se chegou até aqui, a requisição foi bem-sucedida (mesmo sem acesso à resposta em no-cors)
+      console.log('Conexão com o webhook parece estar OK');
+      return true;
+    } catch (error) {
+      console.error('Erro ao conectar ao webhook:', error);
+      return false;
+    }
+  };
+
+  // Função para enviar dados para o webhook de teste
+  const sendToWebhook = async (data: LeadData): Promise<boolean> => {
+    if (!WEBHOOK_URL) {
+      console.error('URL do webhook não definida!');
+      return false;
+    }
+    
+    // Prepara os dados do formulário
+    const formData = new FormData();
+    formData.append('first_name', data.first_name.trim());
+    formData.append('whatsapp', `+55${data.whatsapp.replace(/\D/g, '')}`);
+    formData.append('email', data.email.trim());
+    
+    // Adiciona parâmetros da URL se existirem
+    const urlParams = getUrlParams();
+    Object.entries(urlParams).forEach(([key, value]) => {
+      if (value) formData.append(key, value);
+    });
+    
+    try {
+      console.log('Enviando dados para o webhook:', {
+        url: WEBHOOK_URL,
+        data: Object.fromEntries(formData.entries())
+      });
+      
+      // Envia diretamente para o webhook
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: formData,
+        mode: 'no-cors',
+        credentials: 'omit'
+      });
+      
+      console.log('Resposta do webhook (status):', response.status);
+      
+      // Em modo no-cors, não temos acesso à resposta real
+      // Se não deu erro, assumimos que foi enviado
+      return true;
+      
+    } catch (error) {
+      console.error('Erro ao enviar para o webhook:', error);
+      return false;
+    }
+  };
+
   const onSubmit: SubmitHandler<FormData> = async (formData) => {
     setLoading(true);
     setSubmitError(null);
     setSubmitSuccess(false);
     
     try {
-      // 1. Validação dos dados
-      const formattedWhatsapp = formData.whatsapp.replace(/\D/g, '');
-      if (formattedWhatsapp.length < 10 || formattedWhatsapp.length > 11) {
+      // 1. Validar campos obrigatórios
+      if (!formData.first_name || !formData.whatsapp || !formData.email) {
+        throw new Error('Por favor, preencha todos os campos obrigatórios.');
+      }
+
+      // 2. Validar formato do email
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        throw new Error('Por favor, insira um e-mail válido.');
+      }
+
+      // 3. Validar formato do WhatsApp
+      const whatsappDigits = formData.whatsapp.replace(/\D/g, '');
+      if (whatsappDigits.length < 10) {
         throw new Error('Número de WhatsApp inválido. Inclua o DDD (mínimo 10 dígitos).');
       }
 
-      // 2. Obter parâmetros da URL
-      const urlParams = getUrlParams();
-      
-      // 3. Preparar dados do lead para o webhook
-      const leadData: LeadData = {
-        // Dados do formulário
-        first_name: formData.first_name.trim() || 'Leitor Interessado',
-        whatsapp: formattedWhatsapp,
-        email: formData.email.toLowerCase().trim(),
-        
-        // Adiciona todos os parâmetros da URL ao payload
-        ...urlParams,
-        
-        // Garante que os parâmetros UTM e de rastreamento estejam no nível raiz
-        utm_source: urlParams.utm_source,
-        utm_medium: urlParams.utm_medium,
-        utm_campaign: urlParams.utm_campaign,
-        utm_term: urlParams.utm_term,
-        utm_content: urlParams.utm_content,
-        fbclid: urlParams.fbclid,
-        gclid: urlParams.gclid,
-        gbraid: urlParams.gbraid,
-        wbraid: urlParams.wbraid,
+      // 4. Preparar dados para o webhook
+      const leadData = {
+        first_name: formData.first_name.trim(),
+        whatsapp: `+55${whatsappDigits}`,
+        email: formData.email.trim(),
+        ...getUrlParams()
       };
+
+      // 5. Enviar para o webhook
+      const webhookSuccess = await sendToWebhook(leadData);
       
-      // 4. Feedback visual para o usuário
-      toast({
-        title: "PROCESSANDO SEUS DADOS...",
-        description: "Aguarde um instante, estamos confirmando sua inscrição.",
-      });
-      
-      // 5. Enviar para o webhook com timeout
-      const fetchPromise = fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(leadData),
-      });
-
-      // Timeout para evitar espera infinita
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Tempo de conexão esgotado. Tente novamente.')), 10000)
-      );
-
-      // Usa Promise.race para implementar o timeout
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
-
-      // Verificar se a requisição foi bem-sucedida
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Erro ao enviar dados. Tente novamente.');
+      if (!webhookSuccess) {
+        throw new Error('Não foi possível enviar seus dados. Por favor, tente novamente mais tarde.');
       }
 
-      // 5. Integração com Google Tag Manager (se disponível)
+      // 6. Marcar como sucesso
+      setSubmitSuccess(true);
+      fireConfetti();
+      
+      // 7. Feedback visual de sucesso
+      toast({
+        title: "✅ INSCRIÇÃO CONCLUÍDA!",
+        description: "Redirecionando para o checkout...",
+        className: "bg-brutal-yellow text-brutal-darker font-bold border-2 border-brutal-dark",
+        duration: 3000
+      });
+      
+          // 8. Integração com Google Tag Manager (se disponível)
       if (typeof window !== 'undefined' && window.dataLayer) {
         try {
           window.dataLayer.push({
             event: 'formSubmissionSuccess',
             formId: 'lead_capture_main',
             leadData: { 
-              email: leadData.email, 
-              has_name: !!leadData.first_name, 
-              has_whatsapp: !!leadData.whatsapp 
+              email: formData.email, 
+              has_name: !!formData.first_name, 
+              has_whatsapp: !!formData.whatsapp 
             }
           } as DataLayerEvent);
         } catch (e) {
@@ -280,21 +429,17 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
         }
       }
       
-      // 6. Feedback de sucesso
-      setSubmitSuccess(true);
-      fireConfetti();
+      // 9. Redirecionar para o checkout
+      const checkoutUrl = new URL(CHECKOUT_URL);
+      checkoutUrl.searchParams.set('first_name', leadData.first_name);
+      checkoutUrl.searchParams.set('email', leadData.email);
+      checkoutUrl.searchParams.set('whatsapp', leadData.whatsapp.replace(/\D/g, ''));
       
-      toast({
-        title: "✅ INSCRIÇÃO CONFIRMADA!",
-        description: "Redirecionando para o checkout...",
-        className: "bg-brutal-yellow text-brutal-darker font-bold border-2 border-brutal-dark",
-        duration: 3000
-      });
-      
-      // 7. Redirecionamento após um pequeno delay
+      // 10. Redirecionar após um pequeno delay
       setTimeout(() => {
         try { 
           confetti?.reset();
+          window.location.href = checkoutUrl.toString();
         } catch (e) {
           console.error('Erro ao limpar confetti:', e);
         } finally {
@@ -340,16 +485,48 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
     }
   };
 
-  const inputClasses = `font-sans mt-1 w-full border-2 rounded-sm shadow-inner py-2.5 sm:py-3 px-4 text-sm sm:text-base transition-colors duration-200 ease-in-out hover:border-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 ${darkMode ? 'bg-brutal-dark/30 border-brutal-paper/30 text-brutal-paper placeholder:text-brutal-paper/50 focus:ring-brutal-yellow focus:border-brutal-yellow' : 'bg-brutal-oldpaper/50 border-foreground/30 text-foreground placeholder:text-muted-foreground/70 focus:ring-brutal-red focus:border-brutal-red'}`;
-  const labelClasses = `font-oswald text-xs sm:text-sm uppercase tracking-wider font-bold select-none flex items-center gap-1 ${darkMode ? 'text-brutal-paper/90' : 'text-foreground'}`;
-  const errorMsgClasses = `text-xs mt-1 font-sans flex items-start gap-1 ${darkMode ? 'text-brutal-yellow' : 'text-destructive'}`;
-  const reqAsterisk = <span className={`${darkMode ? 'text-brutal-yellow' : 'text-destructive'}`} aria-hidden="true">*</span>;
+  // Classes reutilizáveis para estilização consistente
+  const inputClasses = `
+    font-sans w-full border-2 rounded-md shadow-sm 
+    py-4 px-4 text-base transition-all duration-200 ease-in-out 
+    focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-opacity-50
+    ${darkMode 
+      ? 'bg-brutal-dark/30 border-brutal-paper/30 text-brutal-paper placeholder:text-brutal-paper/60 focus:ring-brutal-yellow focus:border-brutal-yellow' 
+      : 'bg-white/90 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:ring-brutal-red focus:border-brutal-red focus:ring-opacity-50'
+    }
+    sm:text-base sm:py-4
+    hover:shadow-md hover:border-opacity-80
+  `;
+  const labelClasses = `
+    font-sans text-sm font-medium select-none 
+    mb-2 block ${darkMode ? 'text-brutal-paper/90' : 'text-gray-700'}
+    sm:text-sm
+  `;
+  const errorMsgClasses = `text-xs mt-1.5 font-sans flex items-center gap-1.5 ${darkMode ? 'text-brutal-yellow' : 'text-red-600'}`;
+  const reqAsterisk = <span className={`ml-0.5 ${darkMode ? 'text-brutal-yellow' : 'text-red-600'}`} aria-hidden="true">*</span>;
+  
+  // Estilos para o botão de envio
+  const submitButtonClasses = `
+    w-full py-5 px-6 text-lg font-bold rounded-lg shadow-lg
+    transition-all duration-200 ease-in-out transform active:scale-95
+    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-75
+    h-auto whitespace-normal
+    ${darkMode 
+      ? 'bg-brutal-yellow text-brutal-darker hover:bg-brutal-yellow/90 hover:shadow-xl hover:-translate-y-1 focus:ring-brutal-yellow' 
+      : 'bg-brutal-red text-white hover:bg-brutal-red/90 hover:shadow-xl hover:-translate-y-1 focus:ring-brutal-red'
+    }
+    disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-md
+    sm:text-xl sm:py-5
+  `;
 
   return (
     <form 
+      id="lead-capture-form"
       onSubmit={handleSubmit(onSubmit)} 
       className={`space-y-5 sm:space-y-6 ${className}`}
-      noValidate 
+      noValidate
+      aria-label="Formulário de captação de leads"
+      aria-live="polite"
     >
       <div className="space-y-1.5"> {/* Nome */}
         <div className="flex items-baseline justify-between">
@@ -373,25 +550,49 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
 
       <div className="space-y-1.5"> {/* WhatsApp */}
         <div className="flex items-baseline justify-between">
-          <Label htmlFor="whatsapp" className={labelClasses}>Seu WhatsApp {reqAsterisk}</Label>
-          {errors.whatsapp && <span className={errorMsgClasses} role="alert">{errors.whatsapp.message}</span>}
+          <Label htmlFor="whatsapp" className={labelClasses}>
+            Seu WhatsApp {reqAsterisk}
+          </Label>
+          {errors.whatsapp && (
+            <span className={errorMsgClasses} role="alert">
+              {errors.whatsapp.message}
+            </span>
+          )}
         </div>
-        <Input
-          id="whatsapp"
-          type="tel"
-          placeholder="(XX) XXXXX-XXXX (Obrigatório)"
-          autoComplete="tel"
-          className={`${inputClasses} ${errors.whatsapp ? (darkMode ? '!border-brutal-yellow/70' : '!border-destructive') : ''}`}
-          {...register('whatsapp', {
-            required: 'WhatsApp é chave para contato.',
-            pattern: {
-              value: /^\(\d{2}\) \d{4,5}-\d{4}$/,
-              message: 'Use (XX) XXXXX-XXXX.'
-            }
-          })}
-          aria-required="true"
-          aria-invalid={!!errors.whatsapp}
-        />
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+            </svg>
+          </div>
+          <Input
+            id="whatsapp"
+            type="tel"
+            placeholder="(XX) XXXXX-XXXX"
+            autoComplete="tel"
+            className={`pl-10 ${inputClasses} ${errors.whatsapp ? (darkMode ? '!border-brutal-yellow/70' : '!border-red-500') : ''}`}
+            {...register('whatsapp', {
+              required: 'Informe um número de WhatsApp',
+              pattern: {
+                value: /^\(\d{2}\) \d{4,5}-\d{4}$/,
+                message: 'Formato: (XX) XXXXX-XXXX'
+              },
+              minLength: {
+                value: 15, // (XX) XXXXX-XXXX tem 15 caracteres
+                message: 'Número incompleto'
+              }
+            })}
+            onChange={handleWhatsAppChange}
+            aria-required="true"
+            aria-invalid={!!errors.whatsapp}
+            aria-describedby={errors.whatsapp ? 'whatsapp-error' : undefined}
+          />
+        </div>
+        {!errors.whatsapp && (
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Enviaremos um código de confirmação por WhatsApp
+          </p>
+        )}
       </div>
 
       <div className="space-y-1.5"> {/* Email */}
@@ -418,42 +619,67 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
       </div>
         
       {/* Submit Button and Messages */}
-      <div className="pt-2 space-y-3">
+      <div className="pt-1 space-y-3">
         <Button
           type="submit"
-          disabled={loading || !isFormValid || (isDirty && !isFormValid) || submitSuccess} // More robust disabled check
-          className={`w-full font-oswald font-bold py-3.5 sm:py-4 px-4 sm:px-8 text-base sm:text-lg rounded-sm shadow-brutal-md border-2 hover:shadow-brutal-lg active:translate-y-0.5 active:shadow-brutal-base disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-100 uppercase tracking-wider
-            ${submitSuccess
-              ? 'bg-brutal-green text-brutal-darker border-brutal-darker hover:bg-brutal-green/90'
-              : darkMode
-                ? 'bg-gradient-to-r from-brutal-yellow to-brutal-orange text-brutal-darker border-brutal-darker hover:from-brutal-orange hover:to-brutal-yellow'
-                : 'bg-gradient-to-r from-brutal-red via-brutal-orange to-brutal-yellow text-brutal-darker border-brutal-darker hover:from-brutal-yellow hover:to-brutal-red'
-            }
-          `}
+          disabled={loading || !isFormValid || submitSuccess}
+          className={`${submitButtonClasses} ${!isFormValid ? 'opacity-70 cursor-not-allowed' : ''}`}
           aria-busy={loading}
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
-              <span className={`h-4 w-4 border-2 rounded-full animate-spin ${darkMode ? 'border-brutal-darker border-t-transparent' : 'border-primary-foreground border-t-transparent'}`} />
+              <span className={`h-4 w-4 border-2 rounded-full animate-spin ${darkMode ? 'border-brutal-darker border-t-transparent' : 'border-white border-t-transparent'}`} />
               PROCESSANDO...
             </span>
           ) : submitSuccess ? (
-            <span className="flex items-center justify-center gap-2">✓ SUCESSO! REDIRECIONANDO...</span>
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              SUCESSO! REDIRECIONANDO...
+            </span>
           ) : (
-            <span className="drop-shadow-sm">DESTRAVAR MINHA OFERTA AGORA!</span>
+            <span className="font-medium">DESTRAVAR MINHA OFERTA AGORA!</span>
           )}
         </Button>
         
         {submitError && (
-          <div className={`p-3 text-center text-sm font-medium rounded-sm border ${darkMode ? 'border-brutal-yellow/50 bg-brutal-yellow/10 text-brutal-yellow' : 'border-destructive/30 bg-destructive/10 text-destructive'} animate-fade-in`} role="alert">
-            <strong className="font-oswald block mb-0.5">❌ Falha na Missão:</strong> {submitError}
+          <div 
+            className={`p-3 text-sm rounded-lg border ${darkMode 
+              ? 'border-red-500/30 bg-red-900/20 text-red-200' 
+              : 'border-red-300 bg-red-50 text-red-700'
+            } animate-fade-in`} 
+            role="alert"
+          >
+            <div className="flex items-start">
+              <svg className="w-5 h-5 flex-shrink-0 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="font-semibold">Ocorreu um erro</p>
+                <p className="mt-0.5">{submitError}</p>
+              </div>
+            </div>
           </div>
         )}
 
-        {!isFormValid && isDirty && !loading && !submitError && ( // Show validation hint only if form is dirty, not valid, not loading, and no submit error
-          <div className={`mt-2 p-3 text-xs rounded-sm border-l-4 ${darkMode ? 'bg-brutal-dark/50 border-brutal-orange text-brutal-paper/80' : 'bg-amber-50 border-amber-500 text-amber-700'} font-sans`} role="alert">
-            <p className="font-semibold">Quase lá!</p>
-            <p>Verifique os campos em destaque e preencha corretamente para ativar o botão.</p>
+        {!isFormValid && isDirty && !loading && !submitError && (
+          <div 
+            className={`p-3 rounded-lg border ${darkMode 
+              ? 'border-amber-500/30 bg-amber-900/20 text-amber-200' 
+              : 'border-amber-300 bg-amber-50 text-amber-700'
+            }`} 
+            role="alert"
+          >
+            <div className="flex items-start">
+              <svg className="w-5 h-5 flex-shrink-0 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-medium">Preencha corretamente</p>
+                <p className="text-sm mt-0.5">Verifique os campos em destaque para continuar.</p>
+              </div>
+            </div>
           </div>
         )}
       </div>

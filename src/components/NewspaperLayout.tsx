@@ -1,3 +1,4 @@
+// NewspaperLayout.tsx
 import { ReactNode } from 'react';
 
 interface NewspaperLayoutProps {

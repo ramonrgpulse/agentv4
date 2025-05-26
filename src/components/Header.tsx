@@ -36,7 +36,7 @@ const Header = () => {
   return (
     <header 
       className={`fixed w-full z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-white/95 backdrop-blur-md shadow-md' : 'bg-white'
+        isScrolled ? 'bg-brutal-orange shadow-md' : 'bg-white shadow-sm'
       }`}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -85,14 +85,15 @@ const Header = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-brutal-dark hover:text-brutal-red focus:outline-none"
-              aria-expanded="false"
+              className="inline-flex items-center justify-center p-2 rounded-md text-brutal-dark hover:text-brutal-red focus:outline-none focus:ring-2 focus:ring-brutal-red focus:ring-offset-2"
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
             >
-              <span className="sr-only">Abrir menu</span>
+              <span className="sr-only">{mobileMenuOpen ? "Fechar menu" : "Abrir menu"}</span>
               {mobileMenuOpen ? (
-                <X className="block h-6 w-6" />
+                <X className="block h-6 w-6" aria-hidden="true" />
               ) : (
-                <Menu className="block h-6 w-6" />
+                <Menu className="block h-6 w-6" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -102,45 +103,62 @@ const Header = () => {
       {/* Mobile Navigation */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="md:hidden bg-white border-t border-gray-200 overflow-hidden"
-          >
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {navigation.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  onClick={(e) => {
-                    scrollToForm(e, item.href.substring(1));
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-brutal-dark hover:bg-gray-50 hover:text-brutal-red"
-                >
-                  {item.name}
-                </a>
-              ))}
-              <div className="pt-4 pb-2">
-                <BrutalButton 
-                  onClick={() => {
-                    const element = document.getElementById('lead-form-section');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth' });
+          <>
+            {/* Overlay de fundo */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black z-40 md:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+            
+            {/* Menu móvel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.3 }}
+              className="fixed top-16 right-0 bottom-0 w-64 bg-white shadow-xl z-50 overflow-y-auto md:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu de navegação"
+            >
+              <nav className="px-4 py-6 space-y-6">
+                {navigation.map((item) => (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    onClick={(e) => {
+                      scrollToForm(e, item.href.substring(1));
                       setMobileMenuOpen(false);
-                    }
-                  }}
-                  variant="primary"
-                  fullWidth
-                  className="w-full justify-center"
-                >
-                  Quero minha vaga
-                </BrutalButton>
-              </div>
-            </div>
-          </motion.div>
+                    }}
+                    className="block px-4 py-3 text-lg font-medium text-brutal-dark hover:bg-gray-50 hover:text-brutal-red rounded-lg transition-colors duration-200"
+                  >
+                    {item.name}
+                  </a>
+                ))}
+                <div className="pt-4 mt-4 border-t border-gray-100">
+                  <BrutalButton 
+                    onClick={() => {
+                      const element = document.getElementById('lead-form-section');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                        setMobileMenuOpen(false);
+                      }
+                    }}
+                    variant="primary"
+                    fullWidth
+                    className="w-full justify-center text-lg py-3"
+                  >
+                    Quero minha vaga
+                  </BrutalButton>
+                </div>
+              </nav>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </header>

@@ -8,38 +8,38 @@ const Footer = () => {
     {
       title: 'Produtos',
       links: [
-        { name: 'Agente de Criação de Avatar', href: '#' },
-        { name: 'Método RG Pulse', href: '#' },
-        { name: 'Consultoria', href: '#' },
-        { name: 'Cursos', href: '#' },
+        { name: 'Agente de Criação de Avatar', href: '/produtos/agente-criacao-avatar' },
+        { name: 'Método RG Pulse', href: '/produtos/metodo-rg-pulse' },
+        { name: 'Consultoria', href: '/servicos/consultoria' },
+        { name: 'Cursos', href: '/cursos' },
       ],
     },
     {
       title: 'Empresa',
       links: [
-        { name: 'Sobre Nós', href: '#' },
-        { name: 'Carreiras', href: '#' },
-        { name: 'Blog', href: '#' },
-        { name: 'Contato', href: '#' },
+        { name: 'Sobre Nós', href: '/sobre' },
+        { name: 'Carreiras', href: '/carreiras' },
+        { name: 'Blog', href: 'https://blog.rgpulse.com', target: '_blank', rel: 'noopener noreferrer' },
+        { name: 'Contato', href: '/contato' },
       ],
     },
     {
       title: 'Suporte',
       links: [
-        { name: 'Central de Ajuda', href: '#' },
-        { name: 'Termos de Uso', href: '#' },
-        { name: 'Política de Privacidade', href: '#' },
-        { name: 'FAQ', href: '#' },
+        { name: 'Central de Ajuda', href: '/ajuda' },
+        { name: 'Termos de Uso', href: '/termos-de-uso' },
+        { name: 'Política de Privacidade', href: '/politica-de-privacidade' },
+        { name: 'FAQ', href: '/faq' },
       ],
     },
   ];
 
   const socialLinks = [
-    { name: 'Facebook', icon: Facebook, href: '#' },
-    { name: 'Instagram', icon: Instagram, href: '#' },
-    { name: 'Twitter', icon: Twitter, href: '#' },
-    { name: 'LinkedIn', icon: Linkedin, href: '#' },
-    { name: 'YouTube', icon: Youtube, href: '#' },
+    { name: 'Facebook', icon: Facebook, href: 'https://facebook.com/rgpulse', target: '_blank', rel: 'noopener noreferrer' },
+    { name: 'Instagram', icon: Instagram, href: 'https://instagram.com/rgpulse', target: '_blank', rel: 'noopener noreferrer' },
+    { name: 'Twitter', icon: Twitter, href: 'https://twitter.com/rgpulse', target: '_blank', rel: 'noopener noreferrer' },
+    { name: 'LinkedIn', icon: Linkedin, href: 'https://linkedin.com/company/rgpulse', target: '_blank', rel: 'noopener noreferrer' },
+    { name: 'YouTube', icon: Youtube, href: 'https://youtube.com/rgpulse', target: '_blank', rel: 'noopener noreferrer' },
   ];
 
   return (
@@ -61,6 +61,8 @@ const Footer = () => {
                 <a
                   key={item.name}
                   href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-brutal-gray-300 hover:text-white transition-colors duration-200"
                   aria-label={item.name}
                 >

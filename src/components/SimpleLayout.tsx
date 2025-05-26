@@ -18,6 +18,12 @@ export const SimpleLayout = ({
 
   let layoutBaseClasses = 'bg-background text-foreground'; // Default for light (newspaper)
   let headerClasses = 'bg-primary text-primary-foreground shadow-md'; // Red bg, white text for light
+  // Ensure header is not transparent by default
+  if (pageTheme === 'light') {
+    headerClasses = 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-md'; // Example for light theme, ensure opacity
+  } else {
+    headerClasses = 'bg-brutal-dark text-brutal-paper shadow-lg'; // Ensure opacity for dark theme
+  }
   let headerTitleClasses = 'text-primary-foreground';
   let headerSubtitleClasses = 'text-primary-foreground/90';
   let footerBorder = 'border-border/50';
@@ -43,23 +49,37 @@ export const SimpleLayout = ({
       }}
     >
       <header 
-        className={`py-6 md:py-8 sticky top-0 z-40 transition-colors duration-300 ${headerClasses}`}
+        className={`py-4 md:py-6 sticky top-0 z-40 transition-all duration-300 ${headerClasses} shadow-md`}
       >
         <div className="container mx-auto px-4 text-center">
-          <h1 className={`text-3xl md:text-4xl font-bold mb-1 font-heading ${headerTitleClasses}`}>{title}</h1> 
-          {subtitle && <p className={`text-lg md:text-xl ${headerSubtitleClasses}`}>{subtitle}</p>}
+          <h1 className={`text-2xl md:text-3xl font-bold mb-1 font-heading tracking-tight ${headerTitleClasses}`}>
+            {title}
+          </h1> 
+          {subtitle && (
+            <p className={`text-base md:text-lg mt-2 ${headerSubtitleClasses}`}>
+              {subtitle}
+            </p>
+          )}
         </div>
       </header>
 
-      <main className="container mx-auto px-0 sm:px-4 py-8 md:py-12 flex-grow">
+      <main className="container mx-auto px-4 sm:px-6 py-8 md:py-12 flex-grow">
         {children}
       </main>
 
-      <footer className={`py-8 mt-auto border-t text-center font-sans ${footerBorder} ${pageTheme === 'dark' ? 'bg-brutal-dark' : 'bg-background/70 backdrop-blur-sm'}`}>
+      <footer className={`py-6 mt-auto border-t text-center font-sans ${footerBorder} ${
+        pageTheme === 'dark' 
+          ? 'bg-brutal-dark/95 backdrop-blur-sm' 
+          : 'bg-background/80 backdrop-blur-sm'
+      }`}>
         <div className="container mx-auto px-4">
-            <p className={`text-sm ${pageTheme === 'dark' ? 'text-brutal-paper/60' : 'text-muted-foreground'}`}>
-                © {new Date().getFullYear()} {title}. Todos os direitos reservados.
-            </p>
+          <p className={`text-sm ${
+            pageTheme === 'dark' 
+              ? 'text-brutal-paper/70' 
+              : 'text-muted-foreground'
+          }`}>
+            © {new Date().getFullYear()} RG Pulse. Todos os direitos reservados.
+          </p>
         </div>
       </footer>
     </div>

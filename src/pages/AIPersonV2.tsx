@@ -40,12 +40,12 @@ const AIPersonV2 = () => {
   };
 
   const handleFormComplete = () => {
-    window.location.href = "https://pay.herospark.com/oferta-ai-persona-v2";
+    window.location.href = "https://pay.herospark.com/rg-pulse-agente-criador-de-avatar-aprofundado-412999";
   };
 
   return (
     <SimpleLayout 
-      title="Cansado de Rasgar Dinheiro e Gritar Para as Paredes?"
+      title="RG Pulse - Agente de Criação de Avatar"
       subtitle="A Verdade Nua, Crua e DOLOROSA Sobre o Marketing Que NINGUÉM Tem Coragem de Te Dizer"
       pageTheme="dark"
     >
@@ -54,14 +54,14 @@ const AIPersonV2 = () => {
         variant="transparent" 
         className="pt-16 pb-20 md:pt-24 md:pb-32 text-center !my-0"
       >
-        <div className="container px-4 mx-auto">
+        <div className="container px-4 mx-auto text-center">
           <div className="inline-flex items-center px-4 py-2 mb-6 text-sm font-medium text-brutal-red bg-brutal-red/10 rounded-full border border-brutal-red/30">
             <AlertTriangle className="w-4 h-4 mr-2" />
             ALERTA: Conteúdo sem filtros
           </div>
           
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-brutal-paper sm:text-5xl md:text-6xl lg:text-7xl font-oswald leading-tight">
-            Cansado de Rasgar Dinheiro e
+            RG Pulse - Agente de Criação de Avatar
             <span className="block mt-4 text-transparent bg-clip-text bg-gradient-to-r from-brutal-red via-brutal-orange to-brutal-yellow">
               Gritar Para as Paredes?
             </span>
@@ -74,11 +74,11 @@ const AIPersonV2 = () => {
             </span>
           </p>
           
-          <div className="flex flex-col w-full max-w-2xl gap-4 mt-12 sm:flex-row mx-auto">
+          <div className="flex flex-col items-center w-full max-w-2xl gap-4 mt-12 sm:flex-row sm:justify-center mx-auto">
             <Button 
               size="lg" 
               onClick={() => scrollToForm('hero_cta_parar_perder_dinheiro')}
-              className="font-oswald uppercase tracking-wider flex-1 bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-brutal-darker font-bold py-5 px-8 shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-yellow active:translate-y-0.5 active:shadow-brutal-base rounded-sm text-lg"
+              className="font-oswald uppercase tracking-wider w-full sm:w-auto bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-brutal-darker font-bold py-4 px-6 text-base sm:py-5 sm:px-8 sm:text-lg shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-yellow active:translate-y-0.5 active:shadow-brutal-base rounded-sm h-auto whitespace-normal"
             >
               Quero Parar de Perder Dinheiro Agora
               <Zap className="w-5 h-5 ml-2 animate-pulse" />
@@ -87,7 +87,7 @@ const AIPersonV2 = () => {
               variant="outline" 
               size="lg" 
               onClick={() => scrollToForm('hero_cta_como_funciona')}
-              className="font-oswald uppercase tracking-wider flex-1 text-lg font-bold py-5 px-8 border-2 border-brutal-paper/50 hover:text-brutal-red hover:border-brutal-red text-brutal-paper shadow-brutal-base focus:ring-brutal-red active:translate-y-0.5 active:shadow-none rounded-sm bg-brutal-dark/70 backdrop-blur-sm"
+              className="font-oswald uppercase tracking-wider w-full sm:w-auto font-bold py-4 px-6 text-base sm:py-5 sm:px-8 sm:text-lg border-2 border-brutal-paper/50 hover:text-brutal-red hover:border-brutal-red text-brutal-paper shadow-brutal-base focus:ring-brutal-red active:translate-y-0.5 active:shadow-none rounded-sm bg-brutal-dark/70 backdrop-blur-sm h-auto whitespace-normal"
             >
               Me Mostre Como Isso Funciona
             </Button>
@@ -179,7 +179,7 @@ const AIPersonV2 = () => {
             <Button 
               size="lg"
               onClick={() => scrollToForm('game_over_cta')}
-              className="font-oswald uppercase tracking-wider bg-gradient-to-r from-brutal-yellow to-brutal-orange hover:from-brutal-orange hover:to-brutal-yellow text-brutal-darker font-bold py-4 px-10 shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-red active:translate-y-0.5 active:shadow-brutal-base rounded-sm text-lg"
+              className="font-oswald uppercase tracking-wider w-full md:w-auto bg-gradient-to-r from-brutal-yellow to-brutal-orange hover:from-brutal-orange hover:to-brutal-yellow text-brutal-darker font-bold py-4 px-4 text-base sm:py-4 sm:px-6 md:px-10 shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-red active:translate-y-0.5 active:shadow-brutal-base rounded-sm sm:text-lg h-auto whitespace-normal"
             >
               Quero Virar o Jogo Agora
               <ArrowRight className="w-5 h-5 ml-2" />
@@ -384,7 +384,7 @@ const AIPersonV2 = () => {
             <Button 
               size="lg"
               onClick={() => scrollToForm('final_cta')}
-              className="font-oswald uppercase tracking-wider bg-gradient-to-r from-brutal-yellow to-brutal-orange hover:from-brutal-orange hover:to-brutal-yellow text-brutal-darker font-bold py-4 px-10 text-lg rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+              className="font-oswald uppercase tracking-wider w-full md:w-auto bg-gradient-to-r from-brutal-yellow to-brutal-orange hover:from-brutal-orange hover:to-brutal-yellow text-brutal-darker font-bold py-4 px-4 text-base sm:py-4 sm:px-6 md:px-10 rounded-lg sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 h-auto whitespace-normal"
             >
               Quero Começar Agora
               <ArrowRight className="w-5 h-5 ml-2" />
@@ -399,7 +399,7 @@ const AIPersonV2 = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
               <p className="text-brutal-paper/60 text-sm font-sans">
-                © {new Date().getFullYear()} HeroSpark. Todos os direitos reservados.
+                © {new Date().getFullYear()} RG Pulse. Todos os direitos reservados.
               </p>
             </div>
             <div className="flex space-x-6">
@@ -409,7 +409,7 @@ const AIPersonV2 = () => {
               <a href="#" className="text-brutal-paper/60 hover:text-brutal-yellow transition-colors text-sm font-sans">
                 Política de Privacidade
               </a>
-              <a href="mailto:suporte@herospark.com" className="text-brutal-paper/60 hover:text-brutal-yellow transition-colors text-sm font-sans">
+              <a href="mailto:suporte@rgpulse.com.br" className="text-brutal-paper/60 hover:text-brutal-yellow transition-colors text-sm font-sans">
                 Contato
               </a>
             </div>
