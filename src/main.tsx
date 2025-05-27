@@ -10,42 +10,12 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { fontVariables } from '@/lib/fonts';
 import './styles/tailwind.css';
 
-// Add Google Tag Manager
-const addGoogleTagManager = () => {
-  // Add GTM script
-  const script = document.createElement('script');
-  script.innerHTML = `
-    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PWR9KZC');
-  `;
-  document.head.appendChild(script);
-
-  // Add GTM noscript
-  const noscript = document.createElement('noscript');
-  const iframe = document.createElement('iframe');
-  iframe.src = "https://www.googletagmanager.com/ns.html?id=GTM-PWR9KZC";
-  iframe.height = "0";
-  iframe.width = "0";
-  iframe.style.display = "none";
-  iframe.style.visibility = "hidden";
-  noscript.appendChild(iframe);
-  document.body.prepend(noscript);
-};
+import { initializeGTM, trackUTMParameters } from '@/lib/gtm';
 
 // Initialize GTM
 if (typeof window !== "undefined") {
-  addGoogleTagManager();
-  
-  // Initialize dataLayer
-  window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({
-    event: 'page_view',
-    page_title: document.title,
-    page_location: window.location.href
-  });
+  initializeGTM();
+  trackUTMParameters();
 }
 
 // Adiciona classes iniciais ao body

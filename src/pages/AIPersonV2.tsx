@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useTracking } from "@/hooks/useTracking";
+import { GTMEvents } from "@/lib/gtm";
 import { 
   Zap, 
   CheckCircle, 
@@ -43,6 +45,7 @@ const AIPersonV2 = () => {
   });
   const [readingProgress, setReadingProgress] = useState(0);
   const [scrollY, setScrollY] = useState(0);
+  const { trackEvent } = useTracking();
 
   // Timer countdown effect
   useEffect(() => {
@@ -74,8 +77,12 @@ const AIPersonV2 = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Reading progress and scroll effects
+  // Reading progress and scroll tracking effects
   useEffect(() => {
+    let scrollMilestones = [25, 50, 75, 90];
+    let trackedMilestones = new Set();
+    let timeOnPage = Date.now();
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       setScrollY(currentScrollY);
@@ -83,11 +90,41 @@ const AIPersonV2 = () => {
       const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
       const progress = (currentScrollY / totalHeight) * 100;
       setReadingProgress(progress);
+
+      // Track scroll milestones
+      scrollMilestones.forEach(milestone => {
+        if (progress >= milestone && !trackedMilestones.has(milestone)) {
+          trackedMilestones.add(milestone);
+          GTMEvents.scrollMilestone(milestone, 'aipersonv2', Date.now() - timeOnPage);
+          trackEvent('scroll_milestone', {
+            milestone: milestone,
+            page: 'aipersonv2',
+            time_on_page: Date.now() - timeOnPage
+          });
+        }
+      });
     };
 
+    // Track time milestones
+    const timeIntervals = [30000, 60000, 120000, 300000]; // 30s, 1m, 2m, 5m
+    const timeouts = timeIntervals.map(interval => 
+      setTimeout(() => {
+        GTMEvents.timeOnPage(interval / 1000, 'aipersonv2', readingProgress);
+        trackEvent('time_on_page', {
+          duration: interval,
+          page: 'aipersonv2',
+          scroll_progress: readingProgress
+        });
+      }, interval)
+    );
+
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
+  }, [trackEvent, readingProgress]);
 
   // Visibility effect
   useEffect(() => {
@@ -95,6 +132,19 @@ const AIPersonV2 = () => {
   }, []);
 
   const scrollToForm = (section: string) => {
+    // Rastreamento usando eventos centralizados do GTM
+    GTMEvents.ctaClick(section, 'aipersonv2', {
+      reading_progress: readingProgress
+    });
+
+    // Rastreia o clique no CTA
+    trackEvent('cta_click', {
+      cta_section: section,
+      page: 'aipersonv2',
+      scroll_position: window.scrollY,
+      reading_progress: readingProgress
+    });
+
     setFormSection(section);
     document.getElementById('ai-lead-form-section')?.scrollIntoView({ 
       behavior: 'smooth', 
@@ -121,26 +171,28 @@ const AIPersonV2 = () => {
       </div>
 
       {/* Live Viewers Counter */}
-      <div className={`fixed top-4 left-4 z-40 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-500 ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}>
-        <div className="flex items-center space-x-2 text-sm font-bold">
+      <div className={`fixed top-4 left-2 sm:left-4 z-40 bg-green-600 text-white px-2 sm:px-4 py-2 rounded-lg shadow-lg transform transition-all duration-500 ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'} max-w-[calc(50vw-1rem)]`}>
+        <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-          <Eye className="w-4 h-4" />
-          <span className="animate-pulse">{viewersCount} pessoas assistindo</span>
+          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="animate-pulse hidden sm:inline">{viewersCount} pessoas assistindo</span>
+          <span className="animate-pulse sm:hidden">{viewersCount} online</span>
         </div>
       </div>
 
       {/* Urgency Timer */}
-      <div className={`fixed top-4 right-4 z-40 bg-red-600 text-white p-3 rounded-lg shadow-lg transform transition-all duration-500 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
-        <div className="flex items-center space-x-2 text-sm font-bold">
-          <Timer className="w-4 h-4 animate-pulse" />
-          <span>OFERTA EXPIRA EM:</span>
+      <div className={`fixed top-4 right-2 sm:right-4 z-40 bg-red-600 text-white p-2 sm:p-3 rounded-lg shadow-lg transform transition-all duration-500 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'} max-w-[calc(50vw-1rem)]`}>
+        <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold">
+          <Timer className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
+          <span className="hidden sm:inline">OFERTA EXPIRA EM:</span>
+          <span className="sm:hidden">EXPIRA:</span>
         </div>
-        <div className="flex space-x-1 text-lg font-mono mt-1">
-          <span className="bg-white text-red-600 px-2 py-1 rounded">{String(timeLeft.hours).padStart(2, '0')}</span>
-          <span>:</span>
-          <span className="bg-white text-red-600 px-2 py-1 rounded">{String(timeLeft.minutes).padStart(2, '0')}</span>
-          <span>:</span>
-          <span className="bg-white text-red-600 px-2 py-1 rounded">{String(timeLeft.seconds).padStart(2, '0')}</span>
+        <div className="flex space-x-1 text-sm sm:text-lg font-mono mt-1">
+          <span className="bg-white text-red-600 px-1 sm:px-2 py-1 rounded text-xs sm:text-base">{String(timeLeft.hours).padStart(2, '0')}</span>
+          <span className="text-xs sm:text-base">:</span>
+          <span className="bg-white text-red-600 px-1 sm:px-2 py-1 rounded text-xs sm:text-base">{String(timeLeft.minutes).padStart(2, '0')}</span>
+          <span className="text-xs sm:text-base">:</span>
+          <span className="bg-white text-red-600 px-1 sm:px-2 py-1 rounded text-xs sm:text-base">{String(timeLeft.seconds).padStart(2, '0')}</span>
         </div>
       </div>
       {/* Hero Section */}
@@ -161,11 +213,11 @@ const AIPersonV2 = () => {
 
         <div className="container px-4 mx-auto text-center relative z-10">
           {/* Attention Grabber */}
-          <div className="mb-8 p-4 bg-gradient-to-r from-brutal-red/50 to-brutal-orange/50 border border-brutal-red/50 rounded-lg shadow-lg animate-bounce backdrop-blur-sm">
-            <div className="flex items-center justify-center space-x-2 text-brutal-red font-bold">
-              <Flame className="w-5 h-5 animate-pulse" />
-              <span className="text-sm uppercase tracking-wide">🔥 REVELAÇÃO EXPLOSIVA EM ANDAMENTO 🔥</span>
-              <Flame className="w-5 h-5 animate-pulse" />
+          <div className="mb-8 p-3 sm:p-4 bg-gradient-to-r from-brutal-red/50 to-brutal-orange/50 border border-brutal-red/50 rounded-lg shadow-lg animate-bounce backdrop-blur-sm">
+            <div className="flex items-center justify-center space-x-1 sm:space-x-2 text-brutal-red font-bold">
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+              <span className="text-xs sm:text-sm uppercase tracking-wide text-center">🔥 REVELAÇÃO EXPLOSIVA EM ANDAMENTO 🔥</span>
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
             </div>
           </div>
 
@@ -174,17 +226,17 @@ const AIPersonV2 = () => {
             ALERTA: Conteúdo sem filtros
           </div>
           
-          <h1 className={`mt-4 text-4xl font-extrabold tracking-tight text-brutal-paper sm:text-5xl md:text-6xl lg:text-7xl font-oswald leading-tight transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            RG Pulse - Agente de Criação de Avatar
-            <span className="block mt-4 text-transparent bg-clip-text bg-gradient-to-r from-brutal-red via-brutal-orange to-brutal-yellow relative">
+          <h1 className={`mt-4 text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight text-brutal-paper font-oswald leading-tight transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            <span className="block">RG Pulse - Agente de Criação de Avatar</span>
+            <span className="block mt-2 sm:mt-4 text-transparent bg-clip-text bg-gradient-to-r from-brutal-red via-brutal-orange to-brutal-yellow relative">
               Gritar Para as Paredes?
-              <div className="absolute -bottom-2 left-0 w-full h-1 bg-brutal-red animate-pulse"></div>
+              <div className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-0.5 sm:h-1 bg-brutal-red animate-pulse"></div>
             </span>
           </h1>
           
-          <p className={`max-w-4xl mx-auto mt-8 text-xl sm:text-2xl font-medium text-brutal-paper/90 font-sans leading-relaxed transform transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <p className={`max-w-4xl mx-auto mt-6 sm:mt-8 text-base sm:text-xl md:text-2xl font-medium text-brutal-paper/90 font-sans leading-relaxed transform transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             Você está aí. De novo. Olhando para essa tela, esperando mais uma pílula mágica, mais uma promessa vazia de "resultados explosivos".
-            <span className="block mt-4 text-brutal-yellow font-bold">
+            <span className="block mt-3 sm:mt-4 text-brutal-yellow font-bold">
               Chega de marketing de mentira. Hora da verdade.
             </span>
           </p>
@@ -204,47 +256,49 @@ const AIPersonV2 = () => {
             </div>
           </div>
           
-          <div className={`flex flex-col items-center w-full max-w-2xl gap-4 mt-12 sm:flex-row sm:justify-center mx-auto transform transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <div className={`flex flex-col items-center w-full max-w-2xl gap-3 sm:gap-4 mt-8 sm:mt-12 sm:flex-row sm:justify-center mx-auto transform transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <div className="relative inline-block w-full sm:w-auto">
               <div className="absolute -inset-1 bg-gradient-to-r from-brutal-red to-brutal-orange rounded-sm blur opacity-75 animate-pulse"></div>
               <Button 
                 size="lg" 
                 onClick={() => scrollToForm('hero_cta_parar_perder_dinheiro')}
-                className="relative font-oswald uppercase tracking-wider w-full sm:w-auto bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-brutal-darker font-bold py-4 px-6 text-base sm:py-5 sm:px-8 sm:text-lg shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-yellow active:translate-y-0.5 active:shadow-brutal-base rounded-sm h-auto whitespace-normal group"
+                className="relative font-oswald uppercase tracking-wider w-full sm:w-auto bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-brutal-darker font-bold py-3 px-4 text-sm sm:py-4 sm:px-6 md:py-5 md:px-8 sm:text-base md:text-lg shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-yellow active:translate-y-0.5 active:shadow-brutal-base rounded-sm h-auto group"
               >
-                Quero Parar de Perder Dinheiro Agora
-                <Zap className="w-5 h-5 ml-2 group-hover:animate-spin" />
+                <span className="hidden sm:inline">Quero Parar de Perder Dinheiro Agora</span>
+                <span className="sm:hidden">Parar de Perder Dinheiro</span>
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:animate-spin" />
               </Button>
             </div>
             <Button 
               variant="outline" 
               size="lg" 
               onClick={() => scrollToForm('hero_cta_como_funciona')}
-              className="font-oswald uppercase tracking-wider w-full sm:w-auto font-bold py-4 px-6 text-base sm:py-5 sm:px-8 sm:text-lg border-2 border-brutal-paper/50 hover:text-brutal-red hover:border-brutal-red text-brutal-paper shadow-brutal-base focus:ring-brutal-red active:translate-y-0.5 active:shadow-none rounded-sm bg-brutal-dark/70 backdrop-blur-sm h-auto whitespace-normal"
+              className="font-oswald uppercase tracking-wider w-full sm:w-auto font-bold py-3 px-4 text-sm sm:py-4 sm:px-6 md:py-5 md:px-8 sm:text-base md:text-lg border-2 border-brutal-paper/50 hover:text-brutal-red hover:border-brutal-red text-brutal-paper shadow-brutal-base focus:ring-brutal-red active:translate-y-0.5 active:shadow-none rounded-sm bg-brutal-dark/70 backdrop-blur-sm h-auto"
             >
-              Me Mostre Como Isso Funciona
-              <ArrowDown className="w-5 h-5 ml-2 animate-bounce" />
+              <span className="hidden sm:inline">Me Mostre Como Isso Funciona</span>
+              <span className="sm:hidden">Como Funciona</span>
+              <ArrowDown className="w-4 h-4 sm:w-5 sm:h-5 ml-2 animate-bounce" />
             </Button>
           </div>
           
-          <div className="flex flex-wrap items-center justify-center mt-10 gap-x-6 gap-y-3 text-sm text-brutal-paper/60 font-sans">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center mt-6 sm:mt-10 gap-2 sm:gap-x-6 sm:gap-y-3 text-xs sm:text-sm text-brutal-paper/60 font-sans">
             <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-brutal-yellow mr-2" />
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-brutal-yellow mr-2" />
               <span>Implementação Imediata</span>
             </div>
             <div className="hidden sm:block text-brutal-paper/30">•</div>
             <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-brutal-yellow mr-2" />
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-brutal-yellow mr-2" />
               <span>Resultados Comprovados</span>
             </div>
             <div className="hidden sm:block text-brutal-paper/30">•</div>
             <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-brutal-yellow mr-2" />
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-brutal-yellow mr-2" />
               <span>Garantia de 7 Dias</span>
             </div>
           </div>
           
-          <p className="mt-4 text-sm text-brutal-red font-semibold animate-pulse">
+          <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-brutal-red font-semibold animate-pulse">
             ⚡ Últimas 2 horas: {Math.floor(Math.random() * 50) + 150} pessoas garantiram acesso
           </p>
         </div>
@@ -317,10 +371,11 @@ const AIPersonV2 = () => {
             <Button 
               size="lg"
               onClick={() => scrollToForm('game_over_cta')}
-              className="font-oswald uppercase tracking-wider w-full md:w-auto bg-gradient-to-r from-brutal-yellow to-brutal-orange hover:from-brutal-orange hover:to-brutal-yellow text-brutal-darker font-bold py-4 px-4 text-base sm:py-4 sm:px-6 md:px-10 shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-red active:translate-y-0.5 active:shadow-brutal-base rounded-sm sm:text-lg h-auto whitespace-normal"
+              className="font-oswald uppercase tracking-wider w-full md:w-auto bg-gradient-to-r from-brutal-yellow to-brutal-orange hover:from-brutal-orange hover:to-brutal-yellow text-brutal-darker font-bold py-3 px-3 text-sm sm:py-4 sm:px-6 md:px-10 sm:text-base md:text-lg shadow-brutal-md border-2 border-brutal-dark hover:shadow-brutal-lg focus:ring-brutal-red active:translate-y-0.5 active:shadow-brutal-base rounded-sm h-auto"
             >
-              Quero Virar o Jogo Agora
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <span className="hidden sm:inline">Quero Virar o Jogo Agora</span>
+              <span className="sm:hidden">Virar o Jogo</span>
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
             </Button>
           </div>
         </div>
@@ -522,10 +577,11 @@ const AIPersonV2 = () => {
             <Button 
               size="lg"
               onClick={() => scrollToForm('final_cta')}
-              className="font-oswald uppercase tracking-wider w-full md:w-auto bg-gradient-to-r from-brutal-yellow to-brutal-orange hover:from-brutal-orange hover:to-brutal-yellow text-brutal-darker font-bold py-4 px-4 text-base sm:py-4 sm:px-6 md:px-10 rounded-lg sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 h-auto whitespace-normal"
+              className="font-oswald uppercase tracking-wider w-full md:w-auto bg-gradient-to-r from-brutal-yellow to-brutal-orange hover:from-brutal-orange hover:to-brutal-yellow text-brutal-darker font-bold py-3 px-3 text-sm sm:py-4 sm:px-6 md:px-10 sm:text-base md:text-lg rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 h-auto"
             >
-              Quero Começar Agora
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <span className="hidden sm:inline">Quero Começar Agora</span>
+              <span className="sm:hidden">Começar Agora</span>
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
             </Button>
           </div>
         </div>

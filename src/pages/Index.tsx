@@ -4,6 +4,8 @@ import { CheckCircle, Target, TrendingUp, Zap, Brain, DollarSign, AlertTriangle,
 import LeadCaptureForm from "@/components/LeadCaptureForm";
 import { NewspaperLayout, Article, Headline } from "@/components/NewspaperLayout";
 import { PullQuote, FeatureBox, ThematicSeparator } from "@/components/NewspaperElements";
+import { useTracking } from "@/hooks/useTracking";
+import { GTMEvents } from "@/lib/gtm";
 
 // Interface para o objeto dataLayer global
 type DataLayerEvent = {
@@ -27,6 +29,7 @@ const Index = () => {
     seconds: 59
   });
   const [readingProgress, setReadingProgress] = useState(0);
+  const { trackEvent } = useTracking();
 
   // Timer countdown effect
   useEffect(() => {
@@ -46,17 +49,51 @@ const Index = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Reading progress effect
+  // Reading progress and scroll tracking effect
   useEffect(() => {
+    let scrollMilestones = [25, 50, 75, 90];
+    let trackedMilestones = new Set();
+    let timeOnPage = Date.now();
+
     const handleScroll = () => {
       const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
       const progress = (window.scrollY / totalHeight) * 100;
       setReadingProgress(progress);
+
+      // Track scroll milestones
+      scrollMilestones.forEach(milestone => {
+        if (progress >= milestone && !trackedMilestones.has(milestone)) {
+          trackedMilestones.add(milestone);
+          const timeOnPageSeconds = Math.floor((Date.now() - timeOnPage) / 1000);
+          GTMEvents.scrollMilestone(milestone, 'index', timeOnPageSeconds);
+          trackEvent('scroll_milestone', {
+            milestone: milestone,
+            page: 'index',
+            time_on_page: Date.now() - timeOnPage
+          });
+        }
+      });
     };
 
+    // Track time milestones
+    const timeIntervals = [30000, 60000, 120000, 300000]; // 30s, 1m, 2m, 5m
+    const timeouts = timeIntervals.map(interval => 
+      setTimeout(() => {
+        trackEvent('time_on_page', {
+          duration: interval,
+          page: 'index',
+          scroll_progress: readingProgress
+        });
+      }, interval)
+    );
+
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
+  }, [trackEvent, readingProgress]);
 
   // Visibility effect
   useEffect(() => {
@@ -66,6 +103,20 @@ const Index = () => {
   const scrollToForm = (section: string) => {
     setShowForm(true);
     setFormSection(section);
+    
+    // Rastreamento usando eventos centralizados do GTM
+    GTMEvents.ctaClick(section, 'index', {
+      reading_progress: Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100)
+    });
+
+    // Rastreamento personalizado
+    trackEvent('cta_click', {
+      cta_section: section,
+      page: 'index',
+      scroll_position: window.scrollY,
+      reading_progress: readingProgress
+    });
+    
     document.getElementById('lead-form-section')?.scrollIntoView({ behavior: 'smooth' });
     
     // Track scroll to form in data layer
@@ -106,17 +157,18 @@ const Index = () => {
       </div>
 
       {/* Urgency Timer */}
-      <div className={`fixed top-4 right-4 z-40 bg-brutal-red text-white p-3 rounded-lg shadow-lg transform transition-all duration-500 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
-        <div className="flex items-center space-x-2 text-sm font-bold">
-          <Clock className="w-4 h-4 animate-pulse" />
-          <span>OFERTA EXPIRA EM:</span>
+      <div className={`fixed top-4 right-2 sm:right-4 z-40 bg-brutal-red text-white p-2 sm:p-3 rounded-lg shadow-lg transform transition-all duration-500 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'} max-w-[calc(100vw-1rem)]`}>
+        <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold">
+          <Clock className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
+          <span className="hidden sm:inline">OFERTA EXPIRA EM:</span>
+          <span className="sm:hidden">EXPIRA:</span>
         </div>
-        <div className="flex space-x-1 text-lg font-mono mt-1">
-          <span className="bg-white text-brutal-red px-2 py-1 rounded">{String(timeLeft.hours).padStart(2, '0')}</span>
-          <span>:</span>
-          <span className="bg-white text-brutal-red px-2 py-1 rounded">{String(timeLeft.minutes).padStart(2, '0')}</span>
-          <span>:</span>
-          <span className="bg-white text-brutal-red px-2 py-1 rounded">{String(timeLeft.seconds).padStart(2, '0')}</span>
+        <div className="flex space-x-1 text-sm sm:text-lg font-mono mt-1">
+          <span className="bg-white text-brutal-red px-1 sm:px-2 py-1 rounded text-xs sm:text-base">{String(timeLeft.hours).padStart(2, '0')}</span>
+          <span className="text-xs sm:text-base">:</span>
+          <span className="bg-white text-brutal-red px-1 sm:px-2 py-1 rounded text-xs sm:text-base">{String(timeLeft.minutes).padStart(2, '0')}</span>
+          <span className="text-xs sm:text-base">:</span>
+          <span className="bg-white text-brutal-red px-1 sm:px-2 py-1 rounded text-xs sm:text-base">{String(timeLeft.seconds).padStart(2, '0')}</span>
         </div>
       </div>
 
@@ -126,12 +178,12 @@ const Index = () => {
       />
 
       {/* Attention Grabber */}
-      <div className="max-w-4xl mx-auto mb-12 p-6 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-brutal-red rounded-r-lg shadow-lg animate-pulse">
-        <div className="flex items-start">
-          <AlertTriangle className="w-6 h-6 text-brutal-red mt-1 mr-3 animate-bounce" />
-          <div>
-            <h3 className="text-lg font-bold text-brutal-red mb-2">⚠️ ATENÇÃO: Mais de 10.000 empreendedores já transformaram seus negócios</h3>
-            <p className="text-gray-700">Enquanto você lê isso, seus concorrentes estão implementando estratégias que você nem imagina que existem.</p>
+      <div className="max-w-4xl mx-auto mb-12 p-4 sm:p-6 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-brutal-red rounded-r-lg shadow-lg animate-pulse">
+        <div className="flex flex-col sm:flex-row items-start">
+          <AlertTriangle className="w-6 h-6 text-brutal-red mb-2 sm:mb-0 sm:mt-1 sm:mr-3 animate-bounce flex-shrink-0" />
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-bold text-brutal-red mb-2">⚠️ ATENÇÃO: Mais de 10.000 empreendedores já transformaram seus negócios</h3>
+            <p className="text-sm sm:text-base text-gray-700">Enquanto você lê isso, seus concorrentes estão implementando estratégias que você nem imagina que existem.</p>
           </div>
         </div>
       </div>
@@ -248,26 +300,26 @@ const Index = () => {
 
           {/* Social Proof Counter */}
           <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-xl border border-green-200 mb-8">
-            <div className="flex items-center justify-center space-x-8 text-center">
-              <div className="flex flex-col items-center">
-                <div className="flex items-center space-x-1 text-2xl font-bold text-green-600">
-                  <Users className="w-6 h-6" />
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-center">
+              <div className="flex flex-col items-center min-w-0">
+                <div className="flex items-center space-x-1 text-xl sm:text-2xl font-bold text-green-600">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6" />
                   <span className="animate-pulse">10,247+</span>
                 </div>
-                <span className="text-sm text-gray-600">Clientes Transformados</span>
+                <span className="text-xs sm:text-sm text-gray-600">Clientes Transformados</span>
               </div>
-              <div className="flex flex-col items-center">
-                <div className="flex items-center space-x-1 text-2xl font-bold text-blue-600">
-                  <Star className="w-6 h-6 fill-current" />
+              <div className="flex flex-col items-center min-w-0">
+                <div className="flex items-center space-x-1 text-xl sm:text-2xl font-bold text-blue-600">
+                  <Star className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
                   <span>4.9/5</span>
                 </div>
-                <span className="text-sm text-gray-600">Avaliação Média</span>
+                <span className="text-xs sm:text-sm text-gray-600">Avaliação Média</span>
               </div>
-              <div className="flex flex-col items-center">
-                <div className="text-2xl font-bold text-purple-600 animate-pulse">
+              <div className="flex flex-col items-center min-w-0">
+                <div className="text-xl sm:text-2xl font-bold text-purple-600 animate-pulse">
                   R$ 2.3M+
                 </div>
-                <span className="text-sm text-gray-600">Faturamento Gerado</span>
+                <span className="text-xs sm:text-sm text-gray-600">Faturamento Gerado</span>
               </div>
             </div>
           </div>
@@ -306,19 +358,20 @@ const Index = () => {
             CHEGOU A HORA. A clareza MONSTRUOSA está a um clique.
           </p>
           {/* Enhanced CTA with Urgency */}
-          <div className="text-center mt-10 mb-8">
-            <div className="relative inline-block">
+          <div className="text-center mt-10 mb-8 px-4">
+            <div className="relative inline-block w-full sm:w-auto">
               <div className="absolute -inset-1 bg-gradient-to-r from-brutal-red to-brutal-orange rounded-lg blur opacity-75 animate-pulse"></div>
               <Button 
                 onClick={() => scrollToForm('cta_final')} 
-                className="relative bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-white font-bold py-6 px-8 text-lg rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 active:scale-95 group"
+                className="relative bg-gradient-to-r from-brutal-red to-brutal-orange hover:from-brutal-orange hover:to-brutal-red text-white font-bold py-4 sm:py-6 px-4 sm:px-8 text-sm sm:text-lg rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 active:scale-95 group w-full sm:w-auto"
               >
-                <Zap className="mr-2 h-5 w-5 group-hover:animate-spin" />
-                QUERO MEU CLIENTE DESNUDADO E PARAR DE RASGAR DINHEIRO AGORA!
-                <ArrowDown className="ml-2 h-5 w-5 animate-bounce" />
+                <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-spin" />
+                <span className="hidden sm:inline">QUERO MEU CLIENTE DESNUDADO E PARAR DE RASGAR DINHEIRO AGORA!</span>
+                <span className="sm:hidden">QUERO PARAR DE RASGAR DINHEIRO!</span>
+                <ArrowDown className="ml-2 h-4 w-4 sm:h-5 sm:w-5 animate-bounce" />
               </Button>
             </div>
-            <p className="mt-4 text-sm text-red-600 font-semibold animate-pulse">
+            <p className="mt-4 text-xs sm:text-sm text-red-600 font-semibold animate-pulse">
               ⚡ Últimas 24 horas: 127 pessoas garantiram sua vaga
             </p>
           </div>
@@ -337,13 +390,13 @@ const Index = () => {
 
       {/* Seção do Formulário como um Artigo */}
       <Article title="Garanta Sua Vaga Agora">
-        <div id="lead-form-section" className="max-w-2xl mx-auto text-center">
+        <div id="lead-form-section" className="max-w-2xl mx-auto text-center px-4">
           <div className="mb-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">🔥 ACESSO LIBERADO POR TEMPO LIMITADO</h3>
-            <p className="text-gray-700 mb-4 max-w-lg mx-auto">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">🔥 ACESSO LIBERADO POR TEMPO LIMITADO</h3>
+            <p className="text-sm sm:text-base text-gray-700 mb-4 max-w-lg mx-auto">
               Preencha o formulário abaixo para ter acesso ao material exclusivo e começar a transformar seus resultados hoje mesmo.
             </p>
-            <div className="flex items-center justify-center space-x-4 text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
                 <span>347 pessoas online agora</span>
@@ -364,7 +417,7 @@ const Index = () => {
                 </div>
               </div>
               <LeadCaptureForm onComplete={handleFormComplete} />
-              <div className="mt-6 flex items-center justify-center space-x-4 text-xs text-gray-500">
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-xs text-gray-500">
                 <div className="flex items-center">
                   <CheckCircle className="w-4 h-4 text-green-500 mr-1" />
                   <span>Dados 100% seguros</span>

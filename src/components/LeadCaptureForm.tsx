@@ -7,6 +7,7 @@ import { Label } from "./ui/label";
 import { useToast } from "./ui/use-toast";
 import { useForm, SubmitHandler } from "react-hook-form";
 import type { DataLayerEvent } from '@/types/globals';
+import { GTMEvents } from '@/lib/gtm';
 
 // URLs
 const WEBHOOK_URL = 'https://programa8webhook.rgpulse.com.br/webhook/persona';
@@ -415,6 +416,7 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
           // 8. Integração com Google Tag Manager (se disponível)
       if (typeof window !== 'undefined' && window.dataLayer) {
         try {
+          // Evento principal de conversão
           window.dataLayer.push({
             event: 'formSubmissionSuccess',
             formId: 'lead_capture_main',
@@ -424,6 +426,31 @@ const LeadCaptureForm = ({ onComplete, className = "" }: LeadFormProps) => {
               has_whatsapp: !!formData.whatsapp 
             }
           } as DataLayerEvent);
+
+          // Evento de conversão para campanhas
+          window.dataLayer.push({
+            event: 'conversion',
+            conversion_type: 'lead_capture',
+            value: 1,
+            currency: 'BRL'
+          });
+
+          // Evento específico para Google Ads
+          window.dataLayer.push({
+            event: 'gtag_conversion',
+            send_to: 'AW-CONVERSION_ID/CONVERSION_LABEL', // Substitua pelos seus IDs
+            value: 1,
+            currency: 'BRL'
+          });
+
+          // Evento para Facebook Pixel
+          window.dataLayer.push({
+            event: 'fbq_lead',
+            content_name: 'Lead Capture Form',
+            content_category: 'Marketing',
+            value: 1,
+            currency: 'BRL'
+          });
         } catch (e) {
           console.error('Erro ao enviar para GTM:', e);
         }

@@ -1,6 +1,14 @@
 import { useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { sendGTMEvent, getSavedUTMParams } from '@/lib/gtm';
+
+// Declare global dataLayer
+declare global {
+  interface Window {
+    dataLayer: any[];
+  }
+}
 
 // Interface para os parâmetros de rastreamento
 interface TrackingParams {
@@ -65,45 +73,36 @@ export function useTracking() {
   }, [searchParams]);
 
   // Rastreia um evento personalizado
-  const trackEvent = useCallback((
+  const trackEvent = useCallback(async (
     eventName: string, 
     eventData: Record<string, any> = {}
   ) => {
-    if (typeof window === 'undefined') return;
+    try {
+      // Obtém os parâmetros de rastreamento salvos
+      const trackingParams = JSON.parse(
+        localStorage.getItem('tracking_params') || '{}'
+      );
 
-    // Obtém os parâmetros de rastreamento salvos
-    const trackingParams = JSON.parse(
-      localStorage.getItem('tracking_params') || '{}'
-    );
+      // Envia para o Google Tag Manager usando a função centralizada
+      sendGTMEvent({
+        event: eventName,
+        ...eventData,
+        tracking_params: trackingParams
+      });
 
-    // Prepara o objeto do evento
-    const eventPayload = {
-      event: eventName,
-      ...trackingParams,
-      ...eventData,
-      timestamp: new Date().toISOString(),
-      page_url: window.location.href,
-      page_title: document.title,
-    };
-
-    // Envia para o dataLayer (Google Tag Manager)
-    if (window.dataLayer) {
-      window.dataLayer.push(eventPayload);
-    }
-
-    // Envia para o Supabase (opcional)
-    if (supabase) {
-      supabase
-        .from('analytics_events')
-        .insert([{
+      // Envia para o Supabase (opcional)
+      if (eventData.saveToSupabase !== false) {
+        await supabase.from('events').insert({
           event_name: eventName,
-          event_data: eventPayload,
-          page_url: window.location.href,
-          referrer: document.referrer,
-        }])
-        .then(({ error }) => {
-          if (error) console.error('Error tracking event:', error);
+          event_data: {
+            ...eventData,
+            tracking_params: trackingParams
+          },
+          created_at: new Date().toISOString()
         });
+      }
+    } catch (error) {
+      console.error('Erro ao rastrear evento:', error);
     }
   }, []);
 
