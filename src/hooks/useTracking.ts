@@ -1,14 +1,9 @@
 import { useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
-import { sendGTMEvent, getSavedUTMParams } from '@/lib/gtm';
+import { sendGTMEvent } from '../lib/gtm';
+import { sendEventToWebhook } from '../lib/supabase';
 
-// Declare global dataLayer
-declare global {
-  interface Window {
-    dataLayer: any[];
-  }
-}
+// Não precisamos redeclarar o dataLayer, já está definido em globals.d.ts
 
 // Interface para os parâmetros de rastreamento
 interface TrackingParams {
@@ -75,7 +70,7 @@ export function useTracking() {
   // Rastreia um evento personalizado
   const trackEvent = useCallback(async (
     eventName: string, 
-    eventData: Record<string, any> = {}
+    eventData: Record<string, unknown> = {}
   ) => {
     try {
       // Obtém os parâmetros de rastreamento salvos
@@ -90,17 +85,11 @@ export function useTracking() {
         tracking_params: trackingParams
       });
 
-      // Envia para o Supabase (opcional)
-      if (eventData.saveToSupabase !== false) {
-        await supabase.from('events').insert({
-          event_name: eventName,
-          event_data: {
-            ...eventData,
-            tracking_params: trackingParams
-          },
-          created_at: new Date().toISOString()
-        });
-      }
+      // Envia para o webhook centralizado (substitui o envio para o Supabase)
+      await sendEventToWebhook(eventName, {
+        ...eventData,
+        tracking_params: trackingParams
+      });
     } catch (error) {
       console.error('Erro ao rastrear evento:', error);
     }

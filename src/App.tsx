@@ -7,6 +7,8 @@ import { useEffect } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AIPersonV2 from "./pages/AIPersonV2";
+import ModernIndex from "./pages/ModernIndex";
+import VenderComoGenteGrande from "./pages/VenderComoGenteGrande";
 import { useTracking } from "@/hooks/useTracking";
 import { GTMEvents } from '@/lib/gtm';
 
@@ -43,7 +45,9 @@ const App = () => (
       <Sonner />
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/modern" element={<ModernIndex />} />
         <Route path="/aipersonv2" element={<AIPersonV2 />} />
+        <Route path="/vender-como-gente-grande" element={<VenderComoGenteGrande />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

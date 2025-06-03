@@ -1,37 +1,40 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * ARQUIVO DE UTILITÁRIOS DE RASTREAMENTO
+ * 
+ * Este arquivo substitui a antiga integração com o Supabase.
+ * Agora, o rastreamento é feito via Google Tag Manager e webhook centralizado.
+ * Todos os eventos são enviados para o mesmo webhook utilizado pelos formulários.
+ */
 
-// Verifica se as variáveis de ambiente estão definidas
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// URL do webhook centralizado
+export const WEBHOOK_URL = "https://programa8webhook.rgpulse.com.br/webhook/persona";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('As variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são necessárias');
+// Interface para parâmetros de rastreamento
+export interface TrackingParams {
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
+  utm_content?: string | null;
+  fbclid?: string | null;
+  gclid?: string | null;
+  gclsrc?: string | null;
+  referrer?: string | null;
+  user_agent?: string | null;
+  [key: string]: string | null | undefined;
 }
 
-// Configuração global de headers
-const globalHeaders: HeadersInit = {
-  'Content-Type': 'application/json',
-  'apikey': supabaseAnonKey,
-  'Authorization': `Bearer ${supabaseAnonKey}`,
+// Função para salvar dados de lead localmente (se necessário para integrações)
+export const saveLead = (leadData: Record<string, unknown>): void => {
+  try {
+    localStorage.setItem('lead_data', JSON.stringify(leadData));
+    console.log('Dados do lead salvos localmente', leadData);
+  } catch (error) {
+    console.error('Erro ao salvar dados do lead:', error);
+  }
 };
 
-// Cria e exporta a instância do cliente Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false, // Não persistir sessão no localStorage
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storageKey: 'sb-auth-token',
-  },
-  global: {
-    headers: globalHeaders,
-  },
-  db: {
-    schema: 'public',
-  },
-});
-
-// Tipos para a tabela de leads
+// Tipos para dados de lead (mantidos para compatibilidade com código existente)
 export interface Lead {
   id?: string;
   first_name: string;
@@ -52,58 +55,150 @@ export interface Lead {
   updated_at?: string;
 }
 
-// Funções específicas para a tabela de leads
+// ATENÇÃO: As funções de API para leads foram removidas da integração com Supabase
+// Alternativas de implementação podem ser:
+// 1. Usar localStorage para dados temporários
+// 2. Implementar integração com webhook
+// 3. Usar outra solução de armazenamento
+
+// Funções alternativas sem dependência de banco de dados
 export const leadsApi = {
-  // Cria ou atualiza um lead
+  // Salva dados do lead localmente
   async upsertLead(lead: Partial<Lead>) {
-    const { data, error } = await supabase
-      .from('leads')
-      .upsert(lead, { onConflict: 'email' })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    // Salvar em localStorage como solução temporária
+    try {
+      const storedLeads = JSON.parse(localStorage.getItem('leads') || '[]');
+      const existingLeadIndex = storedLeads.findIndex((l: Lead) => l.email === lead.email);
+      
+      if (existingLeadIndex >= 0) {
+        storedLeads[existingLeadIndex] = { ...storedLeads[existingLeadIndex], ...lead };
+      } else {
+        storedLeads.push({ ...lead, id: crypto.randomUUID(), created_at: new Date().toISOString() });
+      }
+      
+      localStorage.setItem('leads', JSON.stringify(storedLeads));
+      return lead;
+    } catch (error) {
+      console.error('Erro ao salvar lead:', error);
+      throw error;
+    }
   },
 
-  // Busca um lead por email
+  // Busca um lead por email (apenas localmente)
   async getLeadByEmail(email: string) {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = nenhum resultado
-    return data;
+    try {
+      const storedLeads = JSON.parse(localStorage.getItem('leads') || '[]');
+      return storedLeads.find((lead: Lead) => lead.email === email) || null;
+    } catch (error) {
+      console.error('Erro ao buscar lead:', error);
+      return null;
+    }
   },
 
-  // Atualiza o status de checkout de um lead
+  // Atualiza o status de checkout de um lead (apenas localmente)
   async updateCheckoutStatus(email: string, status: boolean) {
-    const { data, error } = await supabase
-      .from('leads')
-      .update({ checkout_completed: status })
-      .eq('email', email)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    try {
+      const storedLeads = JSON.parse(localStorage.getItem('leads') || '[]');
+      const leadIndex = storedLeads.findIndex((lead: Lead) => lead.email === email);
+      
+      if (leadIndex >= 0) {
+        storedLeads[leadIndex].checkout_completed = status;
+        storedLeads[leadIndex].updated_at = new Date().toISOString();
+        localStorage.setItem('leads', JSON.stringify(storedLeads));
+        return storedLeads[leadIndex];
+      }
+      return null;
+    } catch (error) {
+      console.error('Erro ao atualizar status de checkout:', error);
+      return null;
+    }
   },
 
-  // Obtém todos os leads (apenas para admin)
+  // Apenas para debug - não deve ser usado em produção
   async getAllLeads() {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data;
+    try {
+      return JSON.parse(localStorage.getItem('leads') || '[]');
+    } catch (error) {
+      console.error('Erro ao buscar leads:', error);
+      return [];
+    }
   }
 };
 
-// Função para inicializar o rastreamento de página
+/**
+ * Função para enviar eventos para o webhook
+ * Esta função centraliza o envio de qualquer tipo de evento para o webhook
+ */
+export async function sendEventToWebhook(eventName: string, eventData: Record<string, unknown> = {}): Promise<boolean> {
+  try {
+    // Prepara os dados para serem enviados
+    const cleanedData = cleanDataForSerialization({
+      event_name: eventName,
+      event_data: eventData,
+      created_at: new Date().toISOString(),
+      page_url: typeof window !== 'undefined' ? window.location.href : null,
+      referrer: typeof document !== 'undefined' ? document.referrer : null,
+    });
+    
+    console.log(`Enviando evento '${eventName}' para o webhook:`, cleanedData);
+    
+    // Envia para o webhook
+    const response = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(cleanedData),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erro do webhook:', errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Erro ao enviar evento '${eventName}' para o webhook:`, error);
+    return false;
+  }
+}
+
+// Função auxiliar para limpar dados antes da serialização JSON
+function cleanDataForSerialization(data: Record<string, unknown>): Record<string, unknown> {
+  const clean: Record<string, unknown> = {};
+  
+  for (const [key, value] of Object.entries(data)) {
+    // Remove valores indefinidos, funções e símbolos
+    if (value === undefined || typeof value === 'function' || typeof value === 'symbol') {
+      continue;
+    }
+    
+    // Converte valores nulos, objetos e arrays para serialização segura
+    if (value === null) {
+      clean[key] = null;
+    } else if (typeof value === 'object') {
+      if (Array.isArray(value)) {
+        clean[key] = value.map(item => 
+          typeof item === 'object' && item !== null 
+            ? cleanDataForSerialization(item) 
+            : item
+        );
+      } else if (value instanceof Date) {
+        clean[key] = value.toISOString();
+      } else {
+        // Garantir que o valor é um objeto não-nulo que pode ser tratado como Record<string, unknown>
+        clean[key] = cleanDataForSerialization(value as Record<string, unknown>);
+      }
+    } else {
+      clean[key] = value;
+    }
+  }
+  
+  return clean;
+}
+
+// Função para inicializar o rastreamento de página (via GTM e Webhook)
 export function trackPageView() {
   if (typeof window === 'undefined') return;
 
@@ -120,21 +215,14 @@ export function trackPageView() {
   if (window.dataLayer) {
     window.dataLayer.push(pageData);
   }
-
-  // Envia para o Supabase (opcional)
-  if (supabase) {
-    supabase
-      .from('analytics_events')
-      .insert([{
-        event_name: 'page_view',
-        event_data: pageData,
-        page_url: window.location.href,
-        referrer: document.referrer,
-      }])
-      .then(({ error }) => {
-        if (error) console.error('Error tracking page view:', error);
-      });
-  }
+  
+  // Envia para o webhook centralizado (substitui o envio para o Supabase)
+  sendEventToWebhook('page_view', pageData)
+    .then(success => {
+      if (success) {
+        console.log('Evento page_view enviado com sucesso para o webhook');
+      }
+    });
 }
 
 // Inicializa o rastreamento quando o módulo é carregado
@@ -149,4 +237,4 @@ if (typeof window !== 'undefined') {
   window.addEventListener('popstate', trackPageView);
 }
 
-export default supabase;
+// Removida a exportação padrão do Supabase

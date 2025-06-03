@@ -4,7 +4,31 @@ export const GTM_ID = 'GTM-PWR9KZC';
 // Tipos de eventos personalizados
 export interface GTMEvent {
   event: string;
-  [key: string]: any;
+  facebook_pixel?: boolean;
+  google_ads?: boolean;
+  page_location?: string;
+  page_path?: string;
+  page_title?: string;
+  timestamp?: string;
+  page_url?: string;
+  cta_section?: string;
+  form_id?: string;
+  page?: string;
+  scroll_position?: number;
+  milestone?: number;
+  time_on_page?: number;
+  duration?: number;
+  scroll_progress?: number;
+  conversion_type?: string;
+  form_source?: string;
+  value?: number;
+  currency?: string;
+  lead_data?: Record<string, unknown>;
+  send_to?: string;
+  pixel_id?: string;
+  error_type?: string;
+  error_message?: string;
+  [key: string]: unknown;
 }
 
 // Configurações de conversão (substitua pelos seus IDs reais)
@@ -22,6 +46,12 @@ export const CONVERSION_CONFIG = {
 export const sendGTMEvent = (event: GTMEvent) => {
   if (typeof window !== 'undefined' && window.dataLayer) {
     try {
+      // Verifica se o evento é para o Facebook Pixel
+      if (event.facebook_pixel === true && typeof (window as any).fbq !== 'function') {
+        // Registra um aviso mais amigável ao invés de lançar um erro
+        console.warn('Facebook Pixel não está disponível, mas o evento foi enviado para o GTM');
+      }
+      
       window.dataLayer.push({
         ...event,
         timestamp: new Date().toISOString(),
@@ -79,7 +109,7 @@ export const GTMEvents = {
   },
 
   // Conversão de lead
-  leadConversion: (formSource: string, leadData: any) => {
+  leadConversion: (formSource: string, leadData: Record<string, unknown>) => {
     // Evento principal
     sendGTMEvent({
       event: 'lead_conversion',
@@ -98,15 +128,41 @@ export const GTMEvents = {
       value: 1,
       currency: 'BRL'
     });
-
-    // Evento para Facebook Pixel
+    
+    // Verifica se o Facebook Pixel está disponível
+    if (typeof window !== 'undefined' && typeof (window as any).fbq === 'function') {
+      // Evento para Facebook Pixel
+      sendGTMEvent({
+        event: 'Lead',
+        facebook_pixel: true,
+        pixel_id: CONVERSION_CONFIG.facebook.pixel_id,
+        value: 1,
+        currency: 'BRL'
+      });
+    }
+  },
+  
+  // Submissão de formulário
+  formSubmission: (page: string, formId: string, additionalData: Record<string, unknown> = {}) => {
+    // Evento principal de submissão
     sendGTMEvent({
-      event: 'Lead',
-      facebook_pixel: true,
-      pixel_id: CONVERSION_CONFIG.facebook.pixel_id,
-      value: 1,
-      currency: 'BRL'
+      event: 'form_submission',
+      form_id: formId,
+      page: page,
+      ...additionalData
     });
+
+    // Verifica se o Facebook Pixel está disponível
+    if (typeof window !== 'undefined' && typeof (window as any).fbq === 'function') {
+      // Evento para Facebook Pixel apenas se estiver disponível
+      sendGTMEvent({
+        event: 'Lead',
+        facebook_pixel: true,
+        pixel_id: CONVERSION_CONFIG.facebook.pixel_id,
+        value: 1,
+        currency: 'BRL'
+      });
+    }
   },
 
   // Erro de formulário

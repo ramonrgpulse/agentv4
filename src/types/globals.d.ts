@@ -1,18 +1,7 @@
-interface DataLayerEvent {
-  event: string;
-  lead_info?: {
-    has_name?: boolean;
-    has_whatsapp?: boolean;
-    has_email?: boolean;
-    name?: string;
-  };
-  field_name?: string;
-  field_values_complete?: boolean;
-}
+import { GTMEvent } from '../lib/gtm';
 
-// Interface para eventos do dataLayer
-export interface DataLayerEvent {
-  event: string;
+// Estendendo a interface GTMEvent com campos adicionais específicos
+interface ExtendedGTMEvent extends GTMEvent {
   lead_info?: {
     has_name?: boolean;
     has_whatsapp?: boolean;
@@ -25,11 +14,11 @@ export interface DataLayerEvent {
 
 declare global {
   // Declaração para uso no Node.js (SSR)
-  const dataLayer: DataLayerEvent[];
+  const dataLayer: ExtendedGTMEvent[];
   
   // Extensão da interface Window
   interface Window {
-    dataLayer: DataLayerEvent[];
+    dataLayer: ExtendedGTMEvent[];
   }
 }
 
